@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Signin - protection setup</title>
+  <link rel="stylesheet" type="text/css" href="./../icons.css">
+  <style type="text/css">
+    html {
+      height: 100%;
+    }
+    body {
+      min-height: 100%;
+      margin: 0;
+      background-color: rgb(203, 203, 203);
+      font-family: "Arial";
+    }
+    .info {
+      height: 100%;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      display: none;
+    }
+    .info.active {
+      display: flex;
+    }
+    .signin-icon {
+      color: rgb(0, 0, 0);
+      font-size: 350px;
+    }
+  </style>
+</head>
+<body>
+  <div id="check-protection" class="info">
+    <i class="signin-icon icon-shield"></i>
+    <h3>Protection setup. Wait a few seconds to check you and setup you protection.</h3>
+  </div>
+  <div id="not-found" class="info">
+    <i class="signin-icon icon-not-found"></i>
+    <h3>Signin is failed.</h3>
+  </div>
+  <script type="text/javascript">
+    document.cookie = "signin=; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    var iconShield = document.getElementById("check-protection");
+    var iconNa = document.getElementById("not-found");
+    iconShield.classList.add("active");
+    if (!!window.location.search) {
+      var signinData = window.location.search.substring(1);
+      window.history.replaceState(null, null, "/signin");
+      var socket = new WebSocket("ws://localhost:5001")
+      socket.addEventListener("open", function (event) {
+        var message = {
+          code: 0,
+          data: signinData
+        };
+        var messageJSON = JSON.stringify(message);
+        socket.send(messageJSON);
+      });
+      socket.addEventListener("message", function (event) {
+        var messageJSON = event.data
+        var message = JSON.parse(messageJSON)
+        switch (message.code) {
+          case 1:
+            window.close();
+            break
+          case 2:
+            iconShield.classList.remove("active");
+            iconNa.classList.add("active");
+            setTimeout(function () {
+              window.close();
+            }, 15000);
+        }
+      });
+    }
+    else {
+      window.close();
+    }
+  </script>
+</body>
+</html>

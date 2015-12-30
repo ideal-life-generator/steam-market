@@ -1,0 +1,23 @@
+@font-face {
+  font-family: "icons";
+  src: url("./icons.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+ 
+[class^="icon-"]:before, [class*=" icon-"]:before {
+  font-family: "icons";
+  font-style: normal;
+  font-weight: normal;
+  speak: none;
+  display: inline-block;
+  text-decoration: inherit;
+  text-align: center;
+  font-variant: normal;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+ 
+.icon-shield:before { content: "\e800"; }
+.icon-not-found:before { content: "\e802"; }
