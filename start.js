@@ -26,7 +26,7 @@ const serverREST = httpServer((req, res) => {
 })
 
 serverREST.listen(PORT_HTTP_SERVER, PATH_HTTP_SERVER, () => {
-  console.log(`Http rest server is listened on ${PATH_HTTP_SERVER}:${PORT_HTTP_SERVER}`)
+  console.log(`REST server is listened on ${PATH_HTTP_SERVER}:${PORT_HTTP_SERVER}`)
 })
 
 

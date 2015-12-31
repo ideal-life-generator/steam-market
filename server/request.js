@@ -1,27 +1,27 @@
 import { request as httpsRequest } from "https"
 
-const REQUEST_SUPPORTED_CONTENT_TYPES = /(text\/plain)/
+const RESPONSE_SUPPORTED_CONTENT_TYPES = /(text\/plain)/
 
-const REQUEST_PARSER_CONTENT_TYPES = [
+const RESPONSE_PARSER_CONTENT_TYPES = [
   {
     test: /text\/plain/,
-    encode: "UTF-8",
+    encode: "utf-8",
     parser (data) { return data }
   }
 ]
 
-function get (signinQueryCheck, callback) {
+function get (host, path, callback) {
   try {
     let req = httpsRequest({
       method: "GET",
-      host: "steamcommunity.com",
-      path: `/openid/login?${signinQueryCheck}`
+      host: host,
+      path: path
     }, (res) => {
       const { headers } = res
       const { "content-type": contentType } = headers
-      const isSupportedContentType = REQUEST_SUPPORTED_CONTENT_TYPES.test(contentType)
+      const isSupportedContentType = RESPONSE_SUPPORTED_CONTENT_TYPES.test(contentType)
       if (isSupportedContentType) {
-        const { encode } = REQUEST_PARSER_CONTENT_TYPES.find((parseContentType) => {
+        const { encode } = RESPONSE_PARSER_CONTENT_TYPES.find((parseContentType) => {
           return parseContentType.test.test(contentType)
         })
         res.setEncoding(encode)
@@ -32,6 +32,9 @@ function get (signinQueryCheck, callback) {
         res.on("end", () => {
           callback(result)
         })
+      }
+      else {
+        callback()
       }
     })
     req.end()

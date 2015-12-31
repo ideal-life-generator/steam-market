@@ -7,7 +7,7 @@ const TEMPLATES_SUPPORTED = [
   },
   {
     test: /^\/signin$/,
-    path: "signin.html"
+    path: "templates/signin.html"
   }
 ]
 
@@ -34,17 +34,6 @@ const FILES_SUPPORTED_TYPES = [
   }
 ]
 
-function streamToString (stream, callback) {
-  let result = ""
-  stream.setEncoding("utf-8")
-  stream.on("data", (chunk) => {
-    result += chunk
-  })
-  stream.on("end", () => {
-    callback(result)
-  })
-}
-
 function checkSupportTemplate (path) {
   return TEMPLATES_SUPPORTED.find((template) => {
     return template.test.test(path)
@@ -61,4 +50,4 @@ function checkFileType (filePath) {
   })
 }
 
-export { streamToString, checkSupportTemplate, checkSupportFile, checkFileType }
+export { checkSupportTemplate, checkSupportFile, checkFileType }

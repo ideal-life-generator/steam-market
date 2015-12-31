@@ -1,6 +1,6 @@
 import { parse as cookieParse } from "cookie"
 import { parse as querystringParse, stringify as querystringStringify } from "querystring"
-import { get } from "./../request"
+import { steamSigninCheck } from "./../steam/signin-check"
 
 function signinCheckUser (clients, socket, signinQuery) {
   try {
@@ -13,12 +13,10 @@ function signinCheckUser (clients, socket, signinQuery) {
       "openid.mode": "check_authentication"
     }
     const signinQueryCheck = querystringStringify(signinQueryCheckParsed)
-    get(signinQueryCheck, (result) => {
-      const isValid = (/is_valid:true/).test(result)
-      const message = isValid ? {
-        code: 1
-      } : {
-        code: 2
+    steamSigninCheck(signinQueryCheck, (isValid) => {
+      const message = {
+        code: 1,
+        data: isValid
       }
       const messageJSON = JSON.stringify(message)
       clients.forEach((client) => {
