@@ -38,7 +38,7 @@
       var socket = new WebSocket("ws://localhost:5001")
       socket.addEventListener("open", function (event) {
         var message = {
-          code: 0,
+          eventName: "signin.check",
           data: signinData
         };
         var messageJSON = JSON.stringify(message);
@@ -47,8 +47,12 @@
       socket.addEventListener("message", function (event) {
         var messageJSON = event.data;
         var message = JSON.parse(messageJSON);
-        switch (message.code) {
-          case 1:
+        var eventName = message.eventName
+        switch (eventName) {
+          case "signin.resolve":
+            window.close();
+            break;
+          case "signin.reject":
             window.close();
             break;
         }
