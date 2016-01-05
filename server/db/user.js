@@ -23,73 +23,72 @@ import crypto from "crypto"
 
 // SELECT * FROM users WHERE "steamId"='76561198198917706' LIMIT 1;
 
-function exist (db, steamId, existCallback) {
-  db.query(`
-    SELECT EXISTS(SELECT 1 FROM users WHERE "steamId"='${steamId}');
-  `, (err, result) => {
-    if (err) { throw err }
-    else {
-      const { rows: [ { exists: exist } ] } = result
-      existCallback(exist)
-    }
-  })
+const user = {
+  exist (db, steamId, existCallback) {
+    db.query(`
+      SELECT EXISTS(SELECT 1 FROM users WHERE "steamId"=$1);
+    `, [ steamId ], (err, result) => {
+      if (err) { throw err }
+      else {
+        const { rows: [ { exists: exist } ] } = result
+        existCallback(exist)
+      }
+    })
+  },
+  get (db, steamId, getCallback) {
+    const tokenBase64 = crypto.randomBytes(16, "base64")
+    const token = tokenBase64.toString("base64")
+    db.query(`
+      SELECT * FROM users WHERE
+        "steamId"=$1
+      LIMIT 1;
+    `, [ steamId ], (err, result) => {
+      if (err) { throw err }
+      else {
+        const { rows: [ user ] } = result
+        getCallback(user)
+      }
+    })
+  },
+  create (db, steamId, createCallback) {
+    const tokenBase64 = crypto.randomBytes(16, "base64")
+    const token = tokenBase64.toString("base64")
+    db.query(`
+      INSERT INTO users (
+        "steamId",
+        "token"
+      )
+      SELECT
+        $1,
+        $2
+      WHERE NOT EXISTS (SELECT 1 FROM users WHERE "steamId"=$1)
+      RETURNING *;
+    `, [ steamId, token ], (err, result) => {
+      if (err) { throw err }
+      else {
+        const { rows: [ user ] } = result
+        const isCreated = user ? true : false
+        createCallback(isCreated)
+      }
+    })
+  },
+  updateToken (db, steamId, updateTokenCallback) {
+    const tokenBase64 = crypto.randomBytes(16, "base64")
+    const token = tokenBase64.toString("base64")
+    db.query(`
+      UPDATE users SET
+        token=$2
+      WHERE "steamId"=$1
+      RETURNING *;
+    `, [ steamId, token ], (err, result) => {
+      if (err) { throw err }
+      else {
+        const { rows: [ user ] } = result
+        const isUpdatedToken = user ? true : false
+        updateTokenCallback(isUpdatedToken)
+      }
+    })
+  }
 }
 
-function get (db, steamId, getCallback) {
-  const tokenBase64 = crypto.randomBytes(16, "base64")
-  const token = tokenBase64.toString("base64")
-  db.query(`
-    SELECT * FROM users WHERE
-      "steamId"='${steamId}'
-    LIMIT 1;
-  `, (err, result) => {
-    if (err) { throw err }
-    else {
-      const { rows: [ user ] } = result
-      getCallback(user)
-    }
-  })
-}
-
-function create (db, steamId, createCallback) {
-  const tokenBase64 = crypto.randomBytes(16, "base64")
-  const token = tokenBase64.toString("base64")
-  db.query(`
-    INSERT INTO users (
-      "steamId",
-      "token"
-    )
-    SELECT
-      '${steamId}',
-      '${token}'
-    WHERE NOT EXISTS (SELECT 1 FROM users WHERE "steamId"='${steamId}')
-    RETURNING *;
-  `, (err, result) => {
-    if (err) { throw err }
-    else {
-      const { rows: [ user ] } = result
-      const isCreated = user ? true : false
-      createCallback(isCreated)
-    }
-  })
-}
-
-function updateToken (db, steamId, updateTokenCallback) {
-  const tokenBase64 = crypto.randomBytes(16, "base64")
-  const token = tokenBase64.toString("base64")
-  db.query(`
-    UPDATE users SET
-      token='${token}'
-    WHERE "steamId"='${steamId}'
-    RETURNING *;
-  `, (err, result) => {
-    if (err) { throw err }
-    else {
-      const { rows: [ user ] } = result
-      const isUpdatedToken = user ? true : false
-      updateTokenCallback(isUpdatedToken)
-    }
-  })
-}
-
-export { exist, get, create, updateToken }
+export default user

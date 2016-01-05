@@ -1,15 +1,15 @@
-import { parse as querystringParse } from "querystring"
-import { get as requestGet } from "./../request"
+import querystring from "querystring"
+import httpsRequest from "./../https-request"
 
 function getSteamId (url) {
   return url.substring(36)
 }
 
-function signinCheckSteam (signinQueryCheck, signinCheckCallback) {
-  requestGet("steamcommunity.com", `/openid/login?${signinQueryCheck}`, (result) => {
+function signinCheck (signinQueryCheck, signinCheckCallback) {
+  httpsRequest.get("steamcommunity.com", `/openid/login?${signinQueryCheck}`, (result) => {
     const isValid = (/is_valid:true/).test(result)
     if (isValid) {
-      const signinQueryParsed = querystringParse(signinQueryCheck)
+      const signinQueryParsed = querystring.parse(signinQueryCheck)
       const { "openid.identity": steamIdentityUrl } = signinQueryParsed
       const steamId = getSteamId(steamIdentityUrl)
       signinCheckCallback(null, steamId)
@@ -20,4 +20,4 @@ function signinCheckSteam (signinQueryCheck, signinCheckCallback) {
   })
 }
 
-export { signinCheckSteam }
+export default signinCheck

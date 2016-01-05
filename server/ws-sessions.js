@@ -1,6 +1,6 @@
 import { parse as cookieParse } from "cookie"
 
-class Sessions {
+class WsSessions {
   static getSessionId (socket) {
     try {
       const { upgradeReq: { headers: { cookie: socketCookie } } } = socket
@@ -29,7 +29,7 @@ class Sessions {
         // firsts.forEach((currentMessageJSON) => {
         //   socket.send(currentMessageJSON)
         // })
-        const sessionId = Sessions.getSessionId(socket)
+        const sessionId = WsSessions.getSessionId(socket)
         if (!sessions[sessionId]) sessions[sessionId] = [ ]
         const currentSession = sessions[sessionId]
         currentSession.push(socket)
@@ -108,4 +108,4 @@ class Sessions {
   }
 }
 
-export { Sessions }
+export default WsSessions

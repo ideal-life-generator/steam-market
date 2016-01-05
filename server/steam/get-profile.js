@@ -1,19 +1,19 @@
-import { get as requestGet } from "./../request"
+import httpsRequest from "./../https-request"
 import { STEAM_API_KEY } from "./../../config"
 
-function getProfileSteam (steamProfileId, steamProfileCallback) {
-  requestGet("api.steampowered.com", `/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamProfileId}`, (userProfileResponse) => {
-    const { response: { players: [ userProfile ] } } = userProfileResponse
-    const parsedUserProfile = {
-      avatarUrl: userProfile.avatar,
-      avatarMediumUrl: userProfile.avatarmedium,
-      avatarFullUrl: userProfile.avatarfull,
-      name: userProfile.personaname,
-      profileUrl: userProfile.profileurl,
-      steamId: userProfile.steamid
+function getProfile (steamId, steamProfileCallback) {
+  httpsRequest.get("api.steampowered.com", `/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamId}`, (steamProfileResponse) => {
+    const { response: { players: [ steamProfile ] } } = steamProfileResponse
+    const parsedSteamProfile = {
+      avatarUrl: steamProfile.avatar,
+      avatarMediumUrl: steamProfile.avatarmedium,
+      avatarFullUrl: steamProfile.avatarfull,
+      name: steamProfile.personaname,
+      profileUrl: steamProfile.profileurl,
+      steamId: steamProfile.steamid
     }
-    steamProfileCallback(parsedUserProfile)
+    steamProfileCallback(parsedSteamProfile)
   })
 }
 
-export { getProfileSteam }
+export default getProfile

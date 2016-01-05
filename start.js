@@ -1,27 +1,23 @@
-import { createServer as httpServer } from "http"
-import { Server as WebSocketServer } from "ws"
+import http from "http"
+import ws from "ws"
+import WsSessions from "./server/ws-sessions"
 import pg from "pg"
-import { Sessions as WebSocketsSessions } from "./server/ws-sessions"
-
+import fileStream from "./server/api/file-stream"
+import signin from "./server/api/signin"
 import { PORT_HTTP_SERVER, PATH_HTTP_SERVER, PATH_DB_SERVER, PORT_SOCKET_SERVER } from "./config"
 
-import { file as fileHTTP } from "./server/http/file"
-import { signin as signinSockets } from "./server/sockets/signin"
-
-const serverHTTP = httpServer((req, res) => {
-  fileHTTP(req, res)
-})
-
-serverHTTP.listen(PORT_HTTP_SERVER, PATH_HTTP_SERVER, () => {
+const httpServer = http.createServer((req, res) => {
+  fileStream(req, res)
+}).listen(PORT_HTTP_SERVER, PATH_HTTP_SERVER, () => {
   console.log(`HTTP server is listened on ${PATH_HTTP_SERVER}:${PORT_HTTP_SERVER}`)
 })
 
-const serverSocket = new WebSocketServer({ port: PORT_SOCKET_SERVER })
-const webSocketsSessions = new WebSocketsSessions(serverSocket)
+const socketServer = new ws.Server({ port: PORT_SOCKET_SERVER })
+const wsSessions = new WsSessions(socketServer)
 
 pg.connect(PATH_DB_SERVER, (error, db, done) => {
   if (error) { throw error }
   else {
-    signinSockets(webSocketsSessions, db)
+    signin(wsSessions, db)
   }
 })
