@@ -78,8 +78,9 @@ class WsSessions {
     }
     catch (error) { throw error }
   }
-  to (sessionId, eventName, data) {
+  to (sessionId, eventName) {
     try {
+      const data = Array.prototype.slice.call(arguments, 2)
       if (!!sessionId) {
         const sessions = this.sessions
         const currentSession = sessions[sessionId]

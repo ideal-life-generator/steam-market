@@ -3,7 +3,8 @@ import crypto from "crypto"
 // CREATE TABLE users (
 //   "id" SERIAL UNIQUE,
 //   "steamId" TEXT,
-//   "token" TEXT
+//   "token" TEXT,
+//   "walletId" INC
 // );
 
 // SELECT EXISTS(SELECT 1 FROM users WHERE "steamId"='76561198198917706');
@@ -30,8 +31,8 @@ const user = {
     `, [ steamId ], (err, result) => {
       if (err) { throw err }
       else {
-        const { rows: [ { exists: exist } ] } = result
-        existCallback(exist)
+        const { rows: [ { exists: isExist } ] } = result
+        existCallback(isExist)
       }
     })
   },
@@ -69,6 +70,21 @@ const user = {
         const { rows: [ user ] } = result
         const isCreated = user ? true : false
         createCallback(isCreated)
+      }
+    })
+  },
+  getToken (db, steamId, get) {
+    db.query(`
+      UPDATE users SET
+        token=$2
+      WHERE "steamId"=$1
+      RETURNING *;
+    `, [ steamId, token ], (err, result) => {
+      if (err) { throw err }
+      else {
+        const { rows: [ user ] } = result
+        const isUpdatedToken = user ? true : false
+        get(isUpdatedToken)
       }
     })
   },

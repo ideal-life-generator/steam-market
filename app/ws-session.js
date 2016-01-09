@@ -31,14 +31,15 @@ class WsSession {
   //   firsts.push(messageJSON)
   // }
   on (eventName, onCallback) {
+    const wsSession = this
     let webSocket = this.webSocket
     webSocket.addEventListener("message", (event) => {
       const messageJSON = event.data
       const message = JSON.parse(messageJSON)
       const remoteEventName = message.eventName
-      const messageData = message.data
       if (eventName === remoteEventName) {
-        onCallback(messageData)
+        const messageData = message.data
+        onCallback.apply(this, messageData)
       }
     })
   }

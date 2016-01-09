@@ -46,8 +46,6 @@
 
 	"use strict";
 
-	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
 	var _react = __webpack_require__(1);
 
 	var _react2 = _interopRequireDefault(_react);
@@ -56,15 +54,27 @@
 
 	var _redux = __webpack_require__(159);
 
-	var _Main = __webpack_require__(168);
+	var _isomorphicFetch = __webpack_require__(168);
+
+	var _isomorphicFetch2 = _interopRequireDefault(_isomorphicFetch);
+
+	var _reduxThunk = __webpack_require__(170);
+
+	var _reduxThunk2 = _interopRequireDefault(_reduxThunk);
+
+	var _reduxLogger = __webpack_require__(171);
+
+	var _reduxLogger2 = _interopRequireDefault(_reduxLogger);
+
+	var _Main = __webpack_require__(172);
 
 	var _Main2 = _interopRequireDefault(_Main);
 
-	var _common = __webpack_require__(181);
+	var _common = __webpack_require__(185);
 
 	var _common2 = _interopRequireDefault(_common);
 
-	var _wsSession = __webpack_require__(183);
+	var _wsSession = __webpack_require__(187);
 
 	var _wsSession2 = _interopRequireDefault(_wsSession);
 
@@ -83,28 +93,56 @@
 
 	var wsSession = new _wsSession2.default("ws://localhost:5001");
 
-	wsSession.on("signin.resolve", function (user) {
-	  console.log("signin.resolve", user);
-	  localStorage.setItem("steamId", user.steamId);
-	  localStorage.setItem("token", user.token);
-	});
+	var REQUEST_USER = "REQUEST_USER";
 
-	var USER_SIGNED_IN = "USER_SIGNED_IN";
-
-	function signedInUser(user) {
+	function requestUser() {
 	  return {
-	    type: USER_SIGNED_IN,
+	    type: REQUEST_USER
+	  };
+	}
+
+	var RECEIVE_USER = "RECEIVE_USER";
+
+	function receiveUser(user) {
+	  return {
+	    type: RECEIVE_USER,
 	    user: user
 	  };
 	}
 
-	function appReducer() {
-	  var state = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+	// {
+	//   user: {
+	//     isFetching: false,
+	//     isInvalid: false,
+	//     steamId: "76561198198917703",
+	//     token: "7rbg80Ulkfr5x7owBX0foQ=="
+	//   },
+	//   steamProfile: {
+	//     isFetching: false,
+	//     isInvalid: false,
+	//     avatarFullUrl: "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
+	//     avatarMediumUrl: "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg"
+	//     avatarUrl: "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg"
+	//     name: "Трансформер"
+	//     profileUrl: "http://steamcommunity.com/profiles/76561198198917703/"
+	//   }
+	// }
+
+	function user() {
+	  var state = arguments.length <= 0 || arguments[0] === undefined ? {
+	    isFetching: false,
+	    isInvalid: false
+	  } : arguments[0];
 	  var action = arguments[1];
 
 	  switch (action.type) {
-	    case USER_SIGNED_IN:
-	      return _extends({}, state, {
+	    case REQUEST_USER:
+	      return Object.assign({}, state, {
+	        isFetching: true
+	      });
+	    case RECEIVE_USER:
+	      return Object.assign({}, state, {
+	        isFetching: false,
 	        user: action.user
 	      });
 	    default:
@@ -112,7 +150,69 @@
 	  }
 	}
 
-	var appStore = (0, _redux.createStore)(appReducer);
+	var REQUEST_STEAM_PROFILE = "REQUEST_STEAM_PROFILE";
+
+	function requestSteamProfile() {
+	  return {
+	    type: REQUEST_STEAM_PROFILE
+	  };
+	}
+
+	var RECEIVE_STEAM_PROFILE = "RECEIVE_STEAM_PROFILE";
+
+	function receiveSteamProfile(steamProfile) {
+	  return {
+	    type: RECEIVE_STEAM_PROFILE,
+	    steamProfile: steamProfile
+	  };
+	}
+
+	function steamProfile() {
+	  var state = arguments.length <= 0 || arguments[0] === undefined ? {
+	    isFetching: false,
+	    isInvalid: false
+	  } : arguments[0];
+	  var action = arguments[1];
+
+	  switch (action.type) {
+	    case REQUEST_STEAM_PROFILE:
+	      return Object.assign({}, state, {
+	        isFetching: true
+	      });
+	    case RECEIVE_STEAM_PROFILE:
+	      return Object.assign({}, state, {
+	        isFetching: false,
+	        steamProfile: action.steamProfile
+	      });
+	    default:
+	      return state;
+	  }
+	}
+
+	var rootReducer = (0, _redux.combineReducers)({
+	  user: user,
+	  steamProfile: steamProfile
+	});
+
+	var store = (0, _redux.createStore)(rootReducer);
+
+	store.subscribe(function () {
+	  console.log(store.getState());
+	});
+
+	wsSession.on("signin.resolve", function () {
+	  // console.log("signin.resolve")
+	});
+
+	wsSession.on("user.take", function (user) {
+	  store.dispatch(receiveUser(user));
+	});
+
+	wsSession.on("user.steam-profile.take", function (steamProfile) {
+	  store.dispatch(receiveSteamProfile(steamProfile));
+	});
+
+	// let appStore = createStore(appReducer)
 
 	// appStore.subscribe(() => {
 	//   console.log(appStore.getState())
@@ -121,6 +221,208 @@
 	// appStore.dispatch(signedInUser({ name: "Vlad" }))
 
 	(0, _reactDom.render)(_react2.default.createElement(_Main2.default, null), document.getElementById("app"));
+
+	// const SELECT_REDDIT = "SELECT_REDDIT"
+
+	// function selectReddit (reddit) {
+	//   return  {
+	//     type: SELECT_REDDIT,
+	//     reddit
+	//   }
+	// }
+
+	// const INVALIDATE_REDDIT = "INVALIDATE_REDDIT"
+
+	// function invalidateReddit (reddit) {
+	//   return {
+	//     type: INVALIDATE_REDDIT,
+	//     reddit
+	//   }
+	// }
+
+	// const REQUEST_POSTS = "REQUEST_POSTS"
+
+	// function requestPosts (reddit) {
+	//   return {
+	//     type: REQUEST_POSTS,
+	//     reddit
+	//   }
+	// }
+
+	// const RECEIVE_POSTS = "RECEIVE_POSTS"
+
+	// function receivePosts (reddit, json) {
+	//   return {
+	//     type: RECEIVE_POSTS,
+	//     reddit,
+	//     posts: json.data.children.map(child => child.data),
+	//     receiwedAt: Date.now()
+	//   }
+	// }
+
+	// function fetchPosts (reddit) {
+	//   return (dispatch) => {
+	//     dispatch(requestPosts(reddit))
+	//     return fetch(`http://www.reddit.com/r/${reddit}.json`)
+	//       .then(response => response.json())
+	//       .then(json => dispatch(receivePosts(reddit, json)))
+	//   }
+	// }
+
+	// function shouldFetchPosts (state, reddit) {
+	//   const posts = state.postsByReddit[reddit]
+	//   if (!posts) {
+	//     return true
+	//   }
+	//   else if (posts.isFetching) {
+	//     return false
+	//   }
+	//   else {
+	//     return posts.didInvalidate
+	//   }
+	// }
+
+	// function fetchPostsIfNeeded (reddit) {
+	//   return (dispatch, getState) => {
+	//     if (shouldFetchPosts(getState(), reddit)) {
+	//       return dispatch(fetchPosts(reddit))
+	//     }
+	//     else {
+	//       return Promise.resolve()
+	//     }
+	//   }
+	// }
+
+	// // {
+	// //   selectReddit: "frontend",
+	// //   postsByReddit: {
+	// //     frontend: {
+	// //       isFetching: true,
+	// //       didInvalidate: false,
+	// //       items: [ ]
+	// //     },
+	// //     reactjs: {
+	// //       isFetching: false,
+	// //       didInvalidate: false,
+	// //       lastUpdated: 1439478405547,
+	// //       items: [
+	// //         {
+	// //           id: 42,
+	// //           title: "Confusion about Flux and Relay"
+	// //         },
+	// //         {
+	// //           id: 500,
+	// //           title: "Creating a Simple Application Using React JS and Flux Architecture"
+	// //         }
+	// //       ]
+	// //     }
+	// //   }
+	// // }
+
+	// // {
+	// //   selectReddit: "frontend",
+	// //   entities: {
+	// //     users: {
+	// //       2: {
+	// //         id: 2,
+	// //         name: "Andrew"
+	// //       }
+	// //     },
+	// //     posts: {
+	// //       42: {
+	// //         id: 42,
+	// //         title: "Confusion about Flux and Relay",
+	// //         author: 2
+	// //       },
+	// //       100: {
+	// //         id: 100,
+	// //         title: "Creating a Simple Application Using React JS and Flux Architecture",
+	// //         author: 2
+	// //       }
+	// //     }
+	// //   },
+	// //   postsByReddit: {
+	// //     frontend: {
+	// //       isFetching: true,
+	// //       didInvalidate: false,
+	// //       items: [ ]
+	// //     },
+	// //     reactjs: {
+	// //       isFetching: false,
+	// //       didInvalidate: false,
+	// //       lastUpdated: 1439478405547,
+	// //       items: [ 42, 500 ]
+	// //     }
+	// //   }
+	// // }
+
+	// function selectedReddit (state = "reactjs", action) {
+	//   switch (action.type) {
+	//     case SELECT_REDDIT:
+	//       return action.reddit
+	//     default:
+	//       return state
+	//   }
+	// }
+
+	// function posts (state = {
+	//   isFetching: false,
+	//   didInvalidate: false,
+	//   items: [ ]
+	// }, action) {
+	//   switch (action.type) {
+	//     case INVALIDATE_REDDIT:
+	//       return Object.assign({ }, state, {
+	//         didInvalidate: true
+	//       })
+	//     case REQUEST_POSTS:
+	//       return Object.assign({ }, state, {
+	//         isFetching: true,
+	//         didInvalidate: false
+	//       })
+	//     case RECEIVE_POSTS:
+	//       return Object.assign({ }, state, {
+	//         isFetching: false,
+	//         didInvalidate: false,
+	//         items: action.posts,
+	//         lastUpdated: action.receiwedAt
+	//       })
+	//     default:
+	//       return state
+	//   }
+	// }
+
+	// function postsByReddit (state = { }, action) {
+	//   switch (action.type) {
+	//     case INVALIDATE_REDDIT:
+	//     case RECEIVE_POSTS:
+	//     case REQUEST_POSTS:
+	//       return Object.assign({ }, state, {
+	//         [action.reddit]: posts(state[action.reddit], action)
+	//       })
+	//     default:
+	//       return state
+	//   }
+	// }
+
+	// const rootReducer = combineReducers({
+	//   selectedReddit,
+	//   postsByReddit
+	// })
+
+	// const loggerMiddleware = createLogger()
+
+	// const createStoreWithMiddleware = applyMiddleware(
+	//   thunkMiddleware,
+	//   loggerMiddleware
+	// )(createStore)
+
+	// const store = createStoreWithMiddleware(rootReducer)
+
+	// store.dispatch(selectReddit("reactjs"))
+	// store.dispatch(fetchPostsIfNeeded("reactjs")).then(() => {
+	//   console.log(store.getState())
+	// })
 
 /***/ },
 /* 1 */
@@ -20297,6 +20599,595 @@
 /* 168 */
 /***/ function(module, exports, __webpack_require__) {
 
+	// the whatwg-fetch polyfill installs the fetch() function
+	// on the global object (window or self)
+	//
+	// Return that as the export for use in Webpack, Browserify etc.
+	__webpack_require__(169);
+	module.exports = self.fetch.bind(self);
+
+
+/***/ },
+/* 169 */
+/***/ function(module, exports) {
+
+	(function() {
+	  'use strict';
+
+	  if (self.fetch) {
+	    return
+	  }
+
+	  function normalizeName(name) {
+	    if (typeof name !== 'string') {
+	      name = String(name)
+	    }
+	    if (/[^a-z0-9\-#$%&'*+.\^_`|~]/i.test(name)) {
+	      throw new TypeError('Invalid character in header field name')
+	    }
+	    return name.toLowerCase()
+	  }
+
+	  function normalizeValue(value) {
+	    if (typeof value !== 'string') {
+	      value = String(value)
+	    }
+	    return value
+	  }
+
+	  function Headers(headers) {
+	    this.map = {}
+
+	    if (headers instanceof Headers) {
+	      headers.forEach(function(value, name) {
+	        this.append(name, value)
+	      }, this)
+
+	    } else if (headers) {
+	      Object.getOwnPropertyNames(headers).forEach(function(name) {
+	        this.append(name, headers[name])
+	      }, this)
+	    }
+	  }
+
+	  Headers.prototype.append = function(name, value) {
+	    name = normalizeName(name)
+	    value = normalizeValue(value)
+	    var list = this.map[name]
+	    if (!list) {
+	      list = []
+	      this.map[name] = list
+	    }
+	    list.push(value)
+	  }
+
+	  Headers.prototype['delete'] = function(name) {
+	    delete this.map[normalizeName(name)]
+	  }
+
+	  Headers.prototype.get = function(name) {
+	    var values = this.map[normalizeName(name)]
+	    return values ? values[0] : null
+	  }
+
+	  Headers.prototype.getAll = function(name) {
+	    return this.map[normalizeName(name)] || []
+	  }
+
+	  Headers.prototype.has = function(name) {
+	    return this.map.hasOwnProperty(normalizeName(name))
+	  }
+
+	  Headers.prototype.set = function(name, value) {
+	    this.map[normalizeName(name)] = [normalizeValue(value)]
+	  }
+
+	  Headers.prototype.forEach = function(callback, thisArg) {
+	    Object.getOwnPropertyNames(this.map).forEach(function(name) {
+	      this.map[name].forEach(function(value) {
+	        callback.call(thisArg, value, name, this)
+	      }, this)
+	    }, this)
+	  }
+
+	  function consumed(body) {
+	    if (body.bodyUsed) {
+	      return Promise.reject(new TypeError('Already read'))
+	    }
+	    body.bodyUsed = true
+	  }
+
+	  function fileReaderReady(reader) {
+	    return new Promise(function(resolve, reject) {
+	      reader.onload = function() {
+	        resolve(reader.result)
+	      }
+	      reader.onerror = function() {
+	        reject(reader.error)
+	      }
+	    })
+	  }
+
+	  function readBlobAsArrayBuffer(blob) {
+	    var reader = new FileReader()
+	    reader.readAsArrayBuffer(blob)
+	    return fileReaderReady(reader)
+	  }
+
+	  function readBlobAsText(blob) {
+	    var reader = new FileReader()
+	    reader.readAsText(blob)
+	    return fileReaderReady(reader)
+	  }
+
+	  var support = {
+	    blob: 'FileReader' in self && 'Blob' in self && (function() {
+	      try {
+	        new Blob();
+	        return true
+	      } catch(e) {
+	        return false
+	      }
+	    })(),
+	    formData: 'FormData' in self,
+	    arrayBuffer: 'ArrayBuffer' in self
+	  }
+
+	  function Body() {
+	    this.bodyUsed = false
+
+
+	    this._initBody = function(body) {
+	      this._bodyInit = body
+	      if (typeof body === 'string') {
+	        this._bodyText = body
+	      } else if (support.blob && Blob.prototype.isPrototypeOf(body)) {
+	        this._bodyBlob = body
+	      } else if (support.formData && FormData.prototype.isPrototypeOf(body)) {
+	        this._bodyFormData = body
+	      } else if (!body) {
+	        this._bodyText = ''
+	      } else if (support.arrayBuffer && ArrayBuffer.prototype.isPrototypeOf(body)) {
+	        // Only support ArrayBuffers for POST method.
+	        // Receiving ArrayBuffers happens via Blobs, instead.
+	      } else {
+	        throw new Error('unsupported BodyInit type')
+	      }
+	    }
+
+	    if (support.blob) {
+	      this.blob = function() {
+	        var rejected = consumed(this)
+	        if (rejected) {
+	          return rejected
+	        }
+
+	        if (this._bodyBlob) {
+	          return Promise.resolve(this._bodyBlob)
+	        } else if (this._bodyFormData) {
+	          throw new Error('could not read FormData body as blob')
+	        } else {
+	          return Promise.resolve(new Blob([this._bodyText]))
+	        }
+	      }
+
+	      this.arrayBuffer = function() {
+	        return this.blob().then(readBlobAsArrayBuffer)
+	      }
+
+	      this.text = function() {
+	        var rejected = consumed(this)
+	        if (rejected) {
+	          return rejected
+	        }
+
+	        if (this._bodyBlob) {
+	          return readBlobAsText(this._bodyBlob)
+	        } else if (this._bodyFormData) {
+	          throw new Error('could not read FormData body as text')
+	        } else {
+	          return Promise.resolve(this._bodyText)
+	        }
+	      }
+	    } else {
+	      this.text = function() {
+	        var rejected = consumed(this)
+	        return rejected ? rejected : Promise.resolve(this._bodyText)
+	      }
+	    }
+
+	    if (support.formData) {
+	      this.formData = function() {
+	        return this.text().then(decode)
+	      }
+	    }
+
+	    this.json = function() {
+	      return this.text().then(JSON.parse)
+	    }
+
+	    return this
+	  }
+
+	  // HTTP methods whose capitalization should be normalized
+	  var methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
+
+	  function normalizeMethod(method) {
+	    var upcased = method.toUpperCase()
+	    return (methods.indexOf(upcased) > -1) ? upcased : method
+	  }
+
+	  function Request(input, options) {
+	    options = options || {}
+	    var body = options.body
+	    if (Request.prototype.isPrototypeOf(input)) {
+	      if (input.bodyUsed) {
+	        throw new TypeError('Already read')
+	      }
+	      this.url = input.url
+	      this.credentials = input.credentials
+	      if (!options.headers) {
+	        this.headers = new Headers(input.headers)
+	      }
+	      this.method = input.method
+	      this.mode = input.mode
+	      if (!body) {
+	        body = input._bodyInit
+	        input.bodyUsed = true
+	      }
+	    } else {
+	      this.url = input
+	    }
+
+	    this.credentials = options.credentials || this.credentials || 'omit'
+	    if (options.headers || !this.headers) {
+	      this.headers = new Headers(options.headers)
+	    }
+	    this.method = normalizeMethod(options.method || this.method || 'GET')
+	    this.mode = options.mode || this.mode || null
+	    this.referrer = null
+
+	    if ((this.method === 'GET' || this.method === 'HEAD') && body) {
+	      throw new TypeError('Body not allowed for GET or HEAD requests')
+	    }
+	    this._initBody(body)
+	  }
+
+	  Request.prototype.clone = function() {
+	    return new Request(this)
+	  }
+
+	  function decode(body) {
+	    var form = new FormData()
+	    body.trim().split('&').forEach(function(bytes) {
+	      if (bytes) {
+	        var split = bytes.split('=')
+	        var name = split.shift().replace(/\+/g, ' ')
+	        var value = split.join('=').replace(/\+/g, ' ')
+	        form.append(decodeURIComponent(name), decodeURIComponent(value))
+	      }
+	    })
+	    return form
+	  }
+
+	  function headers(xhr) {
+	    var head = new Headers()
+	    var pairs = xhr.getAllResponseHeaders().trim().split('\n')
+	    pairs.forEach(function(header) {
+	      var split = header.trim().split(':')
+	      var key = split.shift().trim()
+	      var value = split.join(':').trim()
+	      head.append(key, value)
+	    })
+	    return head
+	  }
+
+	  Body.call(Request.prototype)
+
+	  function Response(bodyInit, options) {
+	    if (!options) {
+	      options = {}
+	    }
+
+	    this._initBody(bodyInit)
+	    this.type = 'default'
+	    this.status = options.status
+	    this.ok = this.status >= 200 && this.status < 300
+	    this.statusText = options.statusText
+	    this.headers = options.headers instanceof Headers ? options.headers : new Headers(options.headers)
+	    this.url = options.url || ''
+	  }
+
+	  Body.call(Response.prototype)
+
+	  Response.prototype.clone = function() {
+	    return new Response(this._bodyInit, {
+	      status: this.status,
+	      statusText: this.statusText,
+	      headers: new Headers(this.headers),
+	      url: this.url
+	    })
+	  }
+
+	  Response.error = function() {
+	    var response = new Response(null, {status: 0, statusText: ''})
+	    response.type = 'error'
+	    return response
+	  }
+
+	  var redirectStatuses = [301, 302, 303, 307, 308]
+
+	  Response.redirect = function(url, status) {
+	    if (redirectStatuses.indexOf(status) === -1) {
+	      throw new RangeError('Invalid status code')
+	    }
+
+	    return new Response(null, {status: status, headers: {location: url}})
+	  }
+
+	  self.Headers = Headers;
+	  self.Request = Request;
+	  self.Response = Response;
+
+	  self.fetch = function(input, init) {
+	    return new Promise(function(resolve, reject) {
+	      var request
+	      if (Request.prototype.isPrototypeOf(input) && !init) {
+	        request = input
+	      } else {
+	        request = new Request(input, init)
+	      }
+
+	      var xhr = new XMLHttpRequest()
+
+	      function responseURL() {
+	        if ('responseURL' in xhr) {
+	          return xhr.responseURL
+	        }
+
+	        // Avoid security warnings on getResponseHeader when not allowed by CORS
+	        if (/^X-Request-URL:/m.test(xhr.getAllResponseHeaders())) {
+	          return xhr.getResponseHeader('X-Request-URL')
+	        }
+
+	        return;
+	      }
+
+	      xhr.onload = function() {
+	        var status = (xhr.status === 1223) ? 204 : xhr.status
+	        if (status < 100 || status > 599) {
+	          reject(new TypeError('Network request failed'))
+	          return
+	        }
+	        var options = {
+	          status: status,
+	          statusText: xhr.statusText,
+	          headers: headers(xhr),
+	          url: responseURL()
+	        }
+	        var body = 'response' in xhr ? xhr.response : xhr.responseText;
+	        resolve(new Response(body, options))
+	      }
+
+	      xhr.onerror = function() {
+	        reject(new TypeError('Network request failed'))
+	      }
+
+	      xhr.open(request.method, request.url, true)
+
+	      if (request.credentials === 'include') {
+	        xhr.withCredentials = true
+	      }
+
+	      if ('responseType' in xhr && support.blob) {
+	        xhr.responseType = 'blob'
+	      }
+
+	      request.headers.forEach(function(value, name) {
+	        xhr.setRequestHeader(name, value)
+	      })
+
+	      xhr.send(typeof request._bodyInit === 'undefined' ? null : request._bodyInit)
+	    })
+	  }
+	  self.fetch.polyfill = true
+	})();
+
+
+/***/ },
+/* 170 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	function thunkMiddleware(_ref) {
+	  var dispatch = _ref.dispatch;
+	  var getState = _ref.getState;
+
+	  return function (next) {
+	    return function (action) {
+	      return typeof action === 'function' ? action(dispatch, getState) : next(action);
+	    };
+	  };
+	}
+
+	module.exports = thunkMiddleware;
+
+/***/ },
+/* 171 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var repeat = function repeat(str, times) {
+	  return new Array(times + 1).join(str);
+	};
+	var pad = function pad(num, maxLength) {
+	  return repeat("0", maxLength - num.toString().length) + num;
+	};
+	var formatTime = function formatTime(time) {
+	  return " @ " + pad(time.getHours(), 2) + ":" + pad(time.getMinutes(), 2) + ":" + pad(time.getSeconds(), 2) + "." + pad(time.getMilliseconds(), 3);
+	};
+
+	// Use the new performance api to get better precision if available
+	var timer = typeof performance !== "undefined" && typeof performance.now === "function" ? performance : Date;
+
+	/**
+	 * Creates logger with followed options
+	 *
+	 * @namespace
+	 * @property {object} options - options for logger
+	 * @property {string} options.level - console[level]
+	 * @property {boolean} options.duration - print duration of each action?
+	 * @property {boolean} options.timestamp - print timestamp with each action?
+	 * @property {object} options.colors - custom colors
+	 * @property {object} options.logger - implementation of the `console` API
+	 * @property {boolean} options.logErrors - should errors in action execution be caught, logged, and re-thrown?
+	 * @property {boolean} options.collapsed - is group collapsed?
+	 * @property {boolean} options.predicate - condition which resolves logger behavior
+	 * @property {function} options.stateTransformer - transform state before print
+	 * @property {function} options.actionTransformer - transform action before print
+	 * @property {function} options.errorTransformer - transform error before print
+	 */
+
+	function createLogger() {
+	  var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+	  return function (_ref) {
+	    var getState = _ref.getState;
+	    return function (next) {
+	      return function (action) {
+	        var _options$level = options.level;
+	        var level = _options$level === undefined ? "log" : _options$level;
+	        var _options$logger = options.logger;
+	        var logger = _options$logger === undefined ? window.console : _options$logger;
+	        var _options$logErrors = options.logErrors;
+	        var logErrors = _options$logErrors === undefined ? true : _options$logErrors;
+	        var collapsed = options.collapsed;
+	        var predicate = options.predicate;
+	        var _options$duration = options.duration;
+	        var duration = _options$duration === undefined ? false : _options$duration;
+	        var _options$timestamp = options.timestamp;
+	        var timestamp = _options$timestamp === undefined ? true : _options$timestamp;
+	        var transformer = options.transformer;
+	        var _options$stateTransfo = options.stateTransformer;
+	        var // deprecated
+	        stateTransformer = _options$stateTransfo === undefined ? function (state) {
+	          return state;
+	        } : _options$stateTransfo;
+	        var _options$actionTransf = options.actionTransformer;
+	        var actionTransformer = _options$actionTransf === undefined ? function (actn) {
+	          return actn;
+	        } : _options$actionTransf;
+	        var _options$errorTransfo = options.errorTransformer;
+	        var errorTransformer = _options$errorTransfo === undefined ? function (error) {
+	          return error;
+	        } : _options$errorTransfo;
+	        var _options$colors = options.colors;
+	        var colors = _options$colors === undefined ? {
+	          title: function title() {
+	            return "#000000";
+	          },
+	          prevState: function prevState() {
+	            return "#9E9E9E";
+	          },
+	          action: function action() {
+	            return "#03A9F4";
+	          },
+	          nextState: function nextState() {
+	            return "#4CAF50";
+	          },
+	          error: function error() {
+	            return "#F20404";
+	          }
+	        } : _options$colors;
+
+	        // exit if console undefined
+
+	        if (typeof logger === "undefined") {
+	          return next(action);
+	        }
+
+	        // exit early if predicate function returns false
+	        if (typeof predicate === "function" && !predicate(getState, action)) {
+	          return next(action);
+	        }
+
+	        if (transformer) {
+	          console.error("Option 'transformer' is deprecated, use stateTransformer instead");
+	        }
+
+	        var started = timer.now();
+	        var prevState = stateTransformer(getState());
+
+	        var formattedAction = actionTransformer(action);
+	        var returnedValue = undefined;
+	        var error = undefined;
+	        if (logErrors) {
+	          try {
+	            returnedValue = next(action);
+	          } catch (e) {
+	            error = errorTransformer(e);
+	          }
+	        } else {
+	          returnedValue = next(action);
+	        }
+
+	        var took = timer.now() - started;
+	        var nextState = stateTransformer(getState());
+
+	        // message
+	        var time = new Date();
+	        var isCollapsed = typeof collapsed === "function" ? collapsed(getState, action) : collapsed;
+
+	        var formattedTime = formatTime(time);
+	        var titleCSS = colors.title ? "color: " + colors.title(formattedAction) + ";" : null;
+	        var title = "action " + formattedAction.type + (timestamp ? formattedTime : "") + (duration ? " in " + took.toFixed(2) + " ms" : "");
+
+	        // render
+	        try {
+	          if (isCollapsed) {
+	            if (colors.title) logger.groupCollapsed("%c " + title, titleCSS);else logger.groupCollapsed(title);
+	          } else {
+	            if (colors.title) logger.group("%c " + title, titleCSS);else logger.group(title);
+	          }
+	        } catch (e) {
+	          logger.log(title);
+	        }
+
+	        if (colors.prevState) logger[level]("%c prev state", "color: " + colors.prevState(prevState) + "; font-weight: bold", prevState);else logger[level]("prev state", prevState);
+
+	        if (colors.action) logger[level]("%c action", "color: " + colors.action(formattedAction) + "; font-weight: bold", formattedAction);else logger[level]("action", formattedAction);
+
+	        if (error) {
+	          if (colors.error) logger[level]("%c error", "color: " + colors.error(error, prevState) + "; font-weight: bold", error);else logger[level]("error", error);
+	        } else {
+	          if (colors.nextState) logger[level]("%c next state", "color: " + colors.nextState(nextState) + "; font-weight: bold", nextState);else logger[level]("next state", nextState);
+	        }
+
+	        try {
+	          logger.groupEnd();
+	        } catch (e) {
+	          logger.log("—— log end ——");
+	        }
+
+	        if (error) throw error;
+	        return returnedValue;
+	      };
+	    };
+	  };
+	}
+
+	exports.default = createLogger;
+	module.exports = exports['default'];
+
+/***/ },
+/* 172 */
+/***/ function(module, exports, __webpack_require__) {
+
 	"use strict";
 
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -20309,7 +21200,7 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _Header = __webpack_require__(169);
+	var _Header = __webpack_require__(173);
 
 	var _Header2 = _interopRequireDefault(_Header);
 
@@ -20347,7 +21238,7 @@
 	exports.default = Main;
 
 /***/ },
-/* 169 */
+/* 173 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -20362,11 +21253,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _Authorization = __webpack_require__(170);
+	var _Authorization = __webpack_require__(174);
 
 	var _Authorization2 = _interopRequireDefault(_Authorization);
 
-	var _header = __webpack_require__(179);
+	var _header = __webpack_require__(183);
 
 	var _header2 = _interopRequireDefault(_header);
 
@@ -20408,7 +21299,7 @@
 	exports.default = Header;
 
 /***/ },
-/* 170 */
+/* 174 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -20423,11 +21314,11 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _Login = __webpack_require__(171);
+	var _Login = __webpack_require__(175);
 
 	var _Login2 = _interopRequireDefault(_Login);
 
-	var _authorization = __webpack_require__(177);
+	var _authorization = __webpack_require__(181);
 
 	var _authorization2 = _interopRequireDefault(_authorization);
 
@@ -20465,7 +21356,7 @@
 	exports.default = Authorization;
 
 /***/ },
-/* 171 */
+/* 175 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -20480,7 +21371,7 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _login = __webpack_require__(172);
+	var _login = __webpack_require__(176);
 
 	var _login2 = _interopRequireDefault(_login);
 
@@ -20531,16 +21422,16 @@
 	exports.default = Login;
 
 /***/ },
-/* 172 */
+/* 176 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(173);
+	var content = __webpack_require__(177);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(176)(content, {});
+	var update = __webpack_require__(180)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -20557,21 +21448,21 @@
 	}
 
 /***/ },
-/* 173 */
+/* 177 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(174)();
+	exports = module.exports = __webpack_require__(178)();
 	// imports
 
 
 	// module
-	exports.push([module.id, ".login {\n  width: 100%;\n  height: 100%;\n  display: block;\n  border: none;\n  padding: 0;\n  background: none;\n  outline: none;\n  background-image: url(" + __webpack_require__(175) + ");\n  background-position: center center;\n  background-size: 100% 100%;\n  background-repeat: no-repeat;\n  cursor: pointer;\n}\n", ""]);
+	exports.push([module.id, ".login {\n  width: 100%;\n  height: 100%;\n  display: block;\n  border: none;\n  padding: 0;\n  background: none;\n  outline: none;\n  background-image: url(" + __webpack_require__(179) + ");\n  background-position: center center;\n  background-size: 100% 100%;\n  background-repeat: no-repeat;\n  cursor: pointer;\n}\n", ""]);
 
 	// exports
 
 
 /***/ },
-/* 174 */
+/* 178 */
 /***/ function(module, exports) {
 
 	/*
@@ -20627,13 +21518,13 @@
 
 
 /***/ },
-/* 175 */
+/* 179 */
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports = __webpack_require__.p + "eb813d69d6f79d24dde563ecf391bbf5.png";
 
 /***/ },
-/* 176 */
+/* 180 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -20887,16 +21778,16 @@
 
 
 /***/ },
-/* 177 */
+/* 181 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(178);
+	var content = __webpack_require__(182);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(176)(content, {});
+	var update = __webpack_require__(180)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -20913,10 +21804,10 @@
 	}
 
 /***/ },
-/* 178 */
+/* 182 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(174)();
+	exports = module.exports = __webpack_require__(178)();
 	// imports
 
 
@@ -20927,16 +21818,16 @@
 
 
 /***/ },
-/* 179 */
+/* 183 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(180);
+	var content = __webpack_require__(184);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(176)(content, {});
+	var update = __webpack_require__(180)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -20953,10 +21844,10 @@
 	}
 
 /***/ },
-/* 180 */
+/* 184 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(174)();
+	exports = module.exports = __webpack_require__(178)();
 	// imports
 
 
@@ -20967,16 +21858,16 @@
 
 
 /***/ },
-/* 181 */
+/* 185 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(182);
+	var content = __webpack_require__(186);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(176)(content, {});
+	var update = __webpack_require__(180)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -20993,10 +21884,10 @@
 	}
 
 /***/ },
-/* 182 */
+/* 186 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(174)();
+	exports = module.exports = __webpack_require__(178)();
 	// imports
 
 
@@ -21007,7 +21898,7 @@
 
 
 /***/ },
-/* 183 */
+/* 187 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -21018,9 +21909,9 @@
 	  value: true
 	});
 
-	var _cookie = __webpack_require__(184);
+	var _cookie = __webpack_require__(188);
 
-	var _shortid = __webpack_require__(185);
+	var _shortid = __webpack_require__(189);
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -21058,14 +21949,17 @@
 	  _createClass(WsSession, [{
 	    key: "on",
 	    value: function on(eventName, onCallback) {
+	      var _this = this;
+
+	      var wsSession = this;
 	      var webSocket = this.webSocket;
 	      webSocket.addEventListener("message", function (event) {
 	        var messageJSON = event.data;
 	        var message = JSON.parse(messageJSON);
 	        var remoteEventName = message.eventName;
-	        var messageData = message.data;
 	        if (eventName === remoteEventName) {
-	          onCallback(messageData);
+	          var messageData = message.data;
+	          onCallback.apply(_this, messageData);
 	        }
 	      });
 	    }
@@ -21088,7 +21982,7 @@
 	exports.default = WsSession;
 
 /***/ },
-/* 184 */
+/* 188 */
 /***/ function(module, exports) {
 
 	/*!
@@ -21252,23 +22146,23 @@
 
 
 /***/ },
-/* 185 */
+/* 189 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	module.exports = __webpack_require__(186);
+	module.exports = __webpack_require__(190);
 
 
 /***/ },
-/* 186 */
+/* 190 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var alphabet = __webpack_require__(187);
-	var encode = __webpack_require__(189);
-	var decode = __webpack_require__(191);
-	var isValid = __webpack_require__(192);
+	var alphabet = __webpack_require__(191);
+	var encode = __webpack_require__(193);
+	var decode = __webpack_require__(195);
+	var isValid = __webpack_require__(196);
 
 	// Ignore all milliseconds before a certain time to reduce the size of the date entropy without sacrificing uniqueness.
 	// This number should be updated every year or so to keep the generated id short.
@@ -21283,7 +22177,7 @@
 	// has a unique value for worker
 	// Note: I don't know if this is automatically set when using third
 	// party cluster solutions such as pm2.
-	var clusterWorkerId = __webpack_require__(193) || 0;
+	var clusterWorkerId = __webpack_require__(197) || 0;
 
 	// Counter is used when shortid is called multiple times in one second.
 	var counter;
@@ -21366,12 +22260,12 @@
 
 
 /***/ },
-/* 187 */
+/* 191 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var randomFromSeed = __webpack_require__(188);
+	var randomFromSeed = __webpack_require__(192);
 
 	var ORIGINAL = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
 	var alphabet;
@@ -21470,7 +22364,7 @@
 
 
 /***/ },
-/* 188 */
+/* 192 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -21501,12 +22395,12 @@
 
 
 /***/ },
-/* 189 */
+/* 193 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var randomByte = __webpack_require__(190);
+	var randomByte = __webpack_require__(194);
 
 	function encode(lookup, number) {
 	    var loopCounter = 0;
@@ -21526,7 +22420,7 @@
 
 
 /***/ },
-/* 190 */
+/* 194 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -21546,11 +22440,11 @@
 
 
 /***/ },
-/* 191 */
+/* 195 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var alphabet = __webpack_require__(187);
+	var alphabet = __webpack_require__(191);
 
 	/**
 	 * Decode the id to get the version and worker
@@ -21569,11 +22463,11 @@
 
 
 /***/ },
-/* 192 */
+/* 196 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var alphabet = __webpack_require__(187);
+	var alphabet = __webpack_require__(191);
 
 	function isShortId(id) {
 	    if (!id || typeof id !== 'string' || id.length < 6 ) {
@@ -21594,7 +22488,7 @@
 
 
 /***/ },
-/* 193 */
+/* 197 */
 /***/ function(module, exports) {
 
 	'use strict';

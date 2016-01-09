@@ -9,8 +9,7 @@ function getProfile (steamId, steamProfileCallback) {
       avatarMediumUrl: steamProfile.avatarmedium,
       avatarFullUrl: steamProfile.avatarfull,
       name: steamProfile.personaname,
-      profileUrl: steamProfile.profileurl,
-      steamId: steamProfile.steamid
+      profileUrl: steamProfile.profileurl
     }
     steamProfileCallback(parsedSteamProfile)
   })

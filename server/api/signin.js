@@ -17,47 +17,47 @@ function signin (wsSessions, db) {
         wsSessions.to(sessionId, "signin.reject")
       }
       else {
-        let createUserOrUpdateTokenPromise = new Promise((resolve, reject) => {
-          user.exist(db, steamId, (exist) => {
-            if (exist) {
-              user.updateToken(db, steamId, (isTokenUpdated) => {
-                if (isTokenUpdated) {
-                  user.get(db, steamId, (user) => {
-                    resolve(user)
-                  })
-                }
-                else {
-        
-                }
-              })
-            }
-            else {
-              user.create(db, steamId, (isCreated) => {
-                if (isCreated) {
-                  user.get(db, steamId, (user) => {
-                    resolve(user)
-                  })
-                }
-                else {
-        
-                }
-              })
-            }
-          })
+        wsSessions.to(sessionId, "signin.resolve")
+        // let getProfilePromise = new Promise((resolve, reject) => {
+        getProfile(steamId, (steamProfile) => {
+          wsSessions.to(sessionId, "user.steam-profile.take", steamProfile)
+          // resolve(steamProfile)
         })
-        let getProfilePromise = new Promise((resolve, reject) => {
-          getProfile(steamId, (userSteamProfile) => {
-            resolve(userSteamProfile)
-          })
-        })
-        let userPromise = Promise.all([ createUserOrUpdateTokenPromise, getProfilePromise ])
-        userPromise.then(([ userProfile, userSteamProfile ]) => {
-          const user = {
-            ...userProfile,
-            ...userSteamProfile
+        // })
+        // let createOrGetUserPromise = new Promise((resolve, reject) => {
+        user.exist(db, steamId, (isExist) => {
+          if (isExist) {
+            user.updateToken(db, steamId, (isTokenUpdated) => {
+              if (isTokenUpdated) {
+                user.get(db, steamId, (user) => {
+                  wsSessions.to(sessionId, "user.take", user)
+                  // resolve(user)
+                })
+              }
+              else {
+
+              }
+            })
           }
-          wsSessions.to(sessionId, "signin.resolve", user)
+          else {
+            user.create(db, steamId, (isCreated) => {
+              if (isCreated) {
+                user.get(db, steamId, (user) => {
+                  wsSessions.to(sessionId, "user.take", user)
+                  // resolve(user)
+                })
+              }
+              else {
+
+              }
+            })
+          }
         })
+        // })
+        // let userPromise = Promise.all([ getProfilePromise, createOrGetUserPromise ])
+        // userPromise.then(([ steamProfile, user ]) => {
+        //   wsSessions.to(sessionId, "signin.resolve", steamProfile, user)
+        // })
       }
     })
   })
