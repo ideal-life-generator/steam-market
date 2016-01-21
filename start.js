@@ -15,9 +15,18 @@ const httpServer = http.createServer((req, res) => {
 const socketServer = new ws.Server({ port: PORT_SOCKET_SERVER })
 const wsSessions = new WsSessions(socketServer)
 
+
+import user from "./server/db/user"
+
 pg.connect(PATH_DB_SERVER, (error, db, done) => {
   if (error) { throw error }
   else {
     signin(wsSessions, db)
+    wsSessions.on("user.check", ({ steamId, token }, sessionId) => {
+      console.log(steamId, token)
+      user.checkToken(db, steamId, token, (isExist) => {
+        console.log(isExist)
+      })
+    })
   }
 })

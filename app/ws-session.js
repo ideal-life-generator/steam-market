@@ -3,37 +3,30 @@ import { generate as generateId } from "shortid"
 
 class WsSession {
   constructor (serverUrl) {
+    const defaults = {
+      isReady: false,
+      queue: [ ]
+    }
+    Object.assign(this, defaults)
     const cookieObj = cookieParse(document.cookie)
-    if (cookieObj.wsSessionId) {
-      this.wsSessionId = cookieObj.wsSessionId
+    if (cookieObj.sessionId) {
+      this.sessionId = cookieObj.sessionId
     }
     else {
-      this.wsSessionId = generateId()
-      document.cookie = `wsSessionId=${this.wsSessionId};`
+      this.sessionId = generateId()
+      document.cookie = `sessionId=${this.sessionId};`
     }
-    this.firsts = [ ]
-    const firsts = this.firsts
     this.webSocket = new WebSocket(serverUrl)
-    const webSocket = this.webSocket
-    webSocket.addEventListener("open", function () {
-      firsts.forEach((messageJSON) => {
-        webSocket.send(messageJSON)
+    this.webSocket.addEventListener("open", () => {
+      this.isReady = true
+      this.queue.forEach((messageJSON) => {
+        this.webSocket.send(messageJSON)
       })
+      this.queue.length = 0
     })
   }
-  // first (eventName, data) {
-  //   const firsts = this.firsts
-  //   const message = {
-  //     eventName: eventName,
-  //     data: data
-  //   }
-  //   const messageJSON = JSON.stringify(message)
-  //   firsts.push(messageJSON)
-  // }
   on (eventName, onCallback) {
-    const wsSession = this
-    let webSocket = this.webSocket
-    webSocket.addEventListener("message", (event) => {
+    this.webSocket.addEventListener("message", (event) => {
       const messageJSON = event.data
       const message = JSON.parse(messageJSON)
       const remoteEventName = message.eventName
@@ -43,14 +36,21 @@ class WsSession {
       }
     })
   }
-  to (eventName, data) {
-    let webSocket = this.webSocket
+  to (eventName, data, callback) {
     const message = {
       eventName: eventName,
       data: data
     }
     const messageJSON = JSON.stringify(message)
-    webSocket.send(messageJSON)
+    if (this.isReady) {
+      this.webSocket.send(messageJSON)
+    }
+    else {
+      this.queue.push(messageJSON)
+    }
+    if (Boolean(callback)) {
+      callback
+    }
   }
 }
 

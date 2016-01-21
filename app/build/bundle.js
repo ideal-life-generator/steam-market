@@ -46,6 +46,10 @@
 
 	"use strict";
 
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
 	var _react = __webpack_require__(1);
 
 	var _react2 = _interopRequireDefault(_react);
@@ -54,31 +58,37 @@
 
 	var _redux = __webpack_require__(159);
 
-	var _isomorphicFetch = __webpack_require__(168);
+	var _reactRedux = __webpack_require__(168);
+
+	var _isomorphicFetch = __webpack_require__(177);
 
 	var _isomorphicFetch2 = _interopRequireDefault(_isomorphicFetch);
 
-	var _reduxThunk = __webpack_require__(170);
+	var _reduxThunk = __webpack_require__(179);
 
 	var _reduxThunk2 = _interopRequireDefault(_reduxThunk);
 
-	var _reduxLogger = __webpack_require__(171);
+	var _reduxLogger = __webpack_require__(180);
 
 	var _reduxLogger2 = _interopRequireDefault(_reduxLogger);
 
-	var _Main = __webpack_require__(172);
+	var _Main = __webpack_require__(181);
 
 	var _Main2 = _interopRequireDefault(_Main);
 
-	var _common = __webpack_require__(185);
+	var _common = __webpack_require__(194);
 
 	var _common2 = _interopRequireDefault(_common);
 
-	var _wsSession = __webpack_require__(187);
+	var _wsSession = __webpack_require__(196);
 
 	var _wsSession2 = _interopRequireDefault(_wsSession);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var wsSession = new _wsSession2.default("ws://localhost:5001");
 
 	// import { Router, Route, Link } from "react-router"
 	// import createHistory from "history/lib/createHashHistory"
@@ -91,7 +101,38 @@
 	//   <Route path="/" component={Main} />
 	// </Router>
 
-	var wsSession = new _wsSession2.default("ws://localhost:5001");
+	var User = (function () {
+	  function User() {
+	    _classCallCheck(this, User);
+
+	    var steamId = localStorage.steamId;
+	    var token = localStorage.token;
+	    if (Boolean(steamId) && Boolean(token)) {
+	      var _user = {
+	        steamId: steamId,
+	        token: token
+	      };
+	      wsSession.to("user.check", _user, function (isExist) {
+	        console.log(isExist);
+	      });
+	    }
+	  }
+
+	  _createClass(User, [{
+	    key: "store",
+	    value: function store(_ref) {
+	      var steamId = _ref.steamId;
+	      var token = _ref.token;
+
+	      localStorage.setItem("steamId", steamId);
+	      localStorage.setItem("token", token);
+	    }
+	  }]);
+
+	  return User;
+	})();
+
+	var user = new User();
 
 	var REQUEST_USER = "REQUEST_USER";
 
@@ -107,6 +148,13 @@
 	  return {
 	    type: RECEIVE_USER,
 	    user: user
+	  };
+	}
+
+	function saveOrUpdateUser(userData) {
+	  user.store(userData);
+	  return function (dispatch, getState) {
+	    dispatch(receiveUser(userData));
 	  };
 	}
 
@@ -141,10 +189,9 @@
 	        isFetching: true
 	      });
 	    case RECEIVE_USER:
-	      return Object.assign({}, state, {
-	        isFetching: false,
-	        user: action.user
-	      });
+	      return Object.assign({}, state, _extends({
+	        isFetching: false
+	      }, action.user));
 	    default:
 	      return state;
 	  }
@@ -180,32 +227,29 @@
 	        isFetching: true
 	      });
 	    case RECEIVE_STEAM_PROFILE:
-	      return Object.assign({}, state, {
-	        isFetching: false,
-	        steamProfile: action.steamProfile
-	      });
+	      return Object.assign({}, state, _extends({
+	        isFetching: false
+	      }, action.steamProfile));
 	    default:
 	      return state;
 	  }
 	}
 
-	var rootReducer = (0, _redux.combineReducers)({
-	  user: user,
-	  steamProfile: steamProfile
-	});
+	var RECEIVE_CHECK_USER = "RECEIVE_CHECK_USER";
 
-	var store = (0, _redux.createStore)(rootReducer);
-
-	store.subscribe(function () {
-	  console.log(store.getState());
-	});
+	function requestCheckUser(user) {
+	  return {
+	    type: RECEIVE_CHECK_USER,
+	    user: user
+	  };
+	}
 
 	wsSession.on("signin.resolve", function () {
 	  // console.log("signin.resolve")
 	});
 
 	wsSession.on("user.take", function (user) {
-	  store.dispatch(receiveUser(user));
+	  store.dispatch(saveOrUpdateUser(user));
 	});
 
 	wsSession.on("user.steam-profile.take", function (steamProfile) {
@@ -220,7 +264,26 @@
 
 	// appStore.dispatch(signedInUser({ name: "Vlad" }))
 
-	(0, _reactDom.render)(_react2.default.createElement(_Main2.default, null), document.getElementById("app"));
+	var rootReducer = (0, _redux.combineReducers)({
+	  user: user,
+	  steamProfile: steamProfile
+	});
+
+	var loggerMiddleware = (0, _reduxLogger2.default)();
+
+	var createStoreWithMiddleware = (0, _redux.applyMiddleware)(_reduxThunk2.default, loggerMiddleware)(_redux.createStore);
+
+	var store = createStoreWithMiddleware(rootReducer);
+
+	var MainConnected = (0, _reactRedux.connect)(function (state) {
+	  return state;
+	})(_Main2.default);
+
+	(0, _reactDom.render)(_react2.default.createElement(
+	  _reactRedux.Provider,
+	  { store: store },
+	  _react2.default.createElement(MainConnected, null)
+	), document.getElementById("app"));
 
 	// const SELECT_REDDIT = "SELECT_REDDIT"
 
@@ -20599,16 +20662,573 @@
 /* 168 */
 /***/ function(module, exports, __webpack_require__) {
 
+	'use strict';
+
+	var Provider = __webpack_require__(169);
+	var connect = __webpack_require__(171);
+
+	module.exports = { Provider: Provider, connect: connect };
+
+/***/ },
+/* 169 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var _require = __webpack_require__(1);
+
+	var Component = _require.Component;
+	var PropTypes = _require.PropTypes;
+	var Children = _require.Children;
+
+	var storeShape = __webpack_require__(170);
+
+	var didWarnAboutReceivingStore = false;
+	function warnAboutReceivingStore() {
+	  if (didWarnAboutReceivingStore) {
+	    return;
+	  }
+
+	  didWarnAboutReceivingStore = true;
+	  console.error( // eslint-disable-line no-console
+	  '<Provider> does not support changing `store` on the fly. ' + 'It is most likely that you see this error because you updated to ' + 'Redux 2.x and React Redux 2.x which no longer hot reload reducers ' + 'automatically. See https://github.com/rackt/react-redux/releases/' + 'tag/v2.0.0 for the migration instructions.');
+	}
+
+	var Provider = (function (_Component) {
+	  _inherits(Provider, _Component);
+
+	  Provider.prototype.getChildContext = function getChildContext() {
+	    return { store: this.store };
+	  };
+
+	  function Provider(props, context) {
+	    _classCallCheck(this, Provider);
+
+	    var _this = _possibleConstructorReturn(this, _Component.call(this, props, context));
+
+	    _this.store = props.store;
+	    return _this;
+	  }
+
+	  Provider.prototype.componentWillReceiveProps = function componentWillReceiveProps(nextProps) {
+	    var store = this.store;
+	    var nextStore = nextProps.store;
+
+	    if (store !== nextStore) {
+	      warnAboutReceivingStore();
+	    }
+	  };
+
+	  Provider.prototype.render = function render() {
+	    var children = this.props.children;
+
+	    return Children.only(children);
+	  };
+
+	  return Provider;
+	})(Component);
+
+	Provider.propTypes = {
+	  store: storeShape.isRequired,
+	  children: PropTypes.element.isRequired
+	};
+	Provider.childContextTypes = {
+	  store: storeShape.isRequired
+	};
+
+	module.exports = Provider;
+
+/***/ },
+/* 170 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _require = __webpack_require__(1);
+
+	var PropTypes = _require.PropTypes;
+
+	var storeShape = PropTypes.shape({
+	  subscribe: PropTypes.func.isRequired,
+	  dispatch: PropTypes.func.isRequired,
+	  getState: PropTypes.func.isRequired
+	});
+
+	module.exports = storeShape;
+
+/***/ },
+/* 171 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var _require = __webpack_require__(1);
+
+	var Component = _require.Component;
+	var createElement = _require.createElement;
+
+	var storeShape = __webpack_require__(170);
+	var shallowEqual = __webpack_require__(172);
+	var isPlainObject = __webpack_require__(173);
+	var wrapActionCreators = __webpack_require__(174);
+	var hoistStatics = __webpack_require__(175);
+	var invariant = __webpack_require__(176);
+
+	var defaultMapStateToProps = function defaultMapStateToProps(state) {
+	  return {};
+	}; // eslint-disable-line no-unused-vars
+	var defaultMapDispatchToProps = function defaultMapDispatchToProps(dispatch) {
+	  return { dispatch: dispatch };
+	};
+	var defaultMergeProps = function defaultMergeProps(stateProps, dispatchProps, parentProps) {
+	  return _extends({}, parentProps, stateProps, dispatchProps);
+	};
+
+	function getDisplayName(WrappedComponent) {
+	  return WrappedComponent.displayName || WrappedComponent.name || 'Component';
+	}
+
+	// Helps track hot reloading.
+	var nextVersion = 0;
+
+	function connect(mapStateToProps, mapDispatchToProps, mergeProps) {
+	  var options = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
+
+	  var shouldSubscribe = Boolean(mapStateToProps);
+	  var finalMapStateToProps = mapStateToProps || defaultMapStateToProps;
+	  var finalMapDispatchToProps = isPlainObject(mapDispatchToProps) ? wrapActionCreators(mapDispatchToProps) : mapDispatchToProps || defaultMapDispatchToProps;
+	  var finalMergeProps = mergeProps || defaultMergeProps;
+	  var doStatePropsDependOnOwnProps = finalMapStateToProps.length !== 1;
+	  var doDispatchPropsDependOnOwnProps = finalMapDispatchToProps.length !== 1;
+	  var _options$pure = options.pure;
+	  var pure = _options$pure === undefined ? true : _options$pure;
+	  var _options$withRef = options.withRef;
+	  var withRef = _options$withRef === undefined ? false : _options$withRef;
+
+	  // Helps track hot reloading.
+
+	  var version = nextVersion++;
+
+	  function computeStateProps(store, props) {
+	    var state = store.getState();
+	    var stateProps = doStatePropsDependOnOwnProps ? finalMapStateToProps(state, props) : finalMapStateToProps(state);
+
+	    invariant(isPlainObject(stateProps), '`mapStateToProps` must return an object. Instead received %s.', stateProps);
+	    return stateProps;
+	  }
+
+	  function computeDispatchProps(store, props) {
+	    var dispatch = store.dispatch;
+
+	    var dispatchProps = doDispatchPropsDependOnOwnProps ? finalMapDispatchToProps(dispatch, props) : finalMapDispatchToProps(dispatch);
+
+	    invariant(isPlainObject(dispatchProps), '`mapDispatchToProps` must return an object. Instead received %s.', dispatchProps);
+	    return dispatchProps;
+	  }
+
+	  function computeMergedProps(stateProps, dispatchProps, parentProps) {
+	    var mergedProps = finalMergeProps(stateProps, dispatchProps, parentProps);
+	    invariant(isPlainObject(mergedProps), '`mergeProps` must return an object. Instead received %s.', mergedProps);
+	    return mergedProps;
+	  }
+
+	  return function wrapWithConnect(WrappedComponent) {
+	    var Connect = (function (_Component) {
+	      _inherits(Connect, _Component);
+
+	      Connect.prototype.shouldComponentUpdate = function shouldComponentUpdate() {
+	        return !pure || this.haveOwnPropsChanged || this.hasStoreStateChanged;
+	      };
+
+	      function Connect(props, context) {
+	        _classCallCheck(this, Connect);
+
+	        var _this = _possibleConstructorReturn(this, _Component.call(this, props, context));
+
+	        _this.version = version;
+	        _this.store = props.store || context.store;
+
+	        invariant(_this.store, 'Could not find "store" in either the context or ' + ('props of "' + _this.constructor.displayName + '". ') + 'Either wrap the root component in a <Provider>, ' + ('or explicitly pass "store" as a prop to "' + _this.constructor.displayName + '".'));
+
+	        var storeState = _this.store.getState();
+	        _this.state = { storeState: storeState };
+	        _this.clearCache();
+	        return _this;
+	      }
+
+	      Connect.prototype.updateStatePropsIfNeeded = function updateStatePropsIfNeeded() {
+	        var nextStateProps = computeStateProps(this.store, this.props);
+	        if (this.stateProps && shallowEqual(nextStateProps, this.stateProps)) {
+	          return false;
+	        }
+
+	        this.stateProps = nextStateProps;
+	        return true;
+	      };
+
+	      Connect.prototype.updateDispatchPropsIfNeeded = function updateDispatchPropsIfNeeded() {
+	        var nextDispatchProps = computeDispatchProps(this.store, this.props);
+	        if (this.dispatchProps && shallowEqual(nextDispatchProps, this.dispatchProps)) {
+	          return false;
+	        }
+
+	        this.dispatchProps = nextDispatchProps;
+	        return true;
+	      };
+
+	      Connect.prototype.updateMergedProps = function updateMergedProps() {
+	        this.mergedProps = computeMergedProps(this.stateProps, this.dispatchProps, this.props);
+	      };
+
+	      Connect.prototype.isSubscribed = function isSubscribed() {
+	        return typeof this.unsubscribe === 'function';
+	      };
+
+	      Connect.prototype.trySubscribe = function trySubscribe() {
+	        if (shouldSubscribe && !this.unsubscribe) {
+	          this.unsubscribe = this.store.subscribe(this.handleChange.bind(this));
+	          this.handleChange();
+	        }
+	      };
+
+	      Connect.prototype.tryUnsubscribe = function tryUnsubscribe() {
+	        if (this.unsubscribe) {
+	          this.unsubscribe();
+	          this.unsubscribe = null;
+	        }
+	      };
+
+	      Connect.prototype.componentDidMount = function componentDidMount() {
+	        this.trySubscribe();
+	      };
+
+	      Connect.prototype.componentWillReceiveProps = function componentWillReceiveProps(nextProps) {
+	        if (!pure || !shallowEqual(nextProps, this.props)) {
+	          this.haveOwnPropsChanged = true;
+	        }
+	      };
+
+	      Connect.prototype.componentWillUnmount = function componentWillUnmount() {
+	        this.tryUnsubscribe();
+	        this.clearCache();
+	      };
+
+	      Connect.prototype.clearCache = function clearCache() {
+	        this.dispatchProps = null;
+	        this.stateProps = null;
+	        this.mergedProps = null;
+	        this.haveOwnPropsChanged = true;
+	        this.hasStoreStateChanged = true;
+	        this.renderedElement = null;
+	      };
+
+	      Connect.prototype.handleChange = function handleChange() {
+	        if (!this.unsubscribe) {
+	          return;
+	        }
+
+	        var prevStoreState = this.state.storeState;
+	        var storeState = this.store.getState();
+
+	        if (!pure || prevStoreState !== storeState) {
+	          this.hasStoreStateChanged = true;
+	          this.setState({ storeState: storeState });
+	        }
+	      };
+
+	      Connect.prototype.getWrappedInstance = function getWrappedInstance() {
+	        invariant(withRef, 'To access the wrapped instance, you need to specify ' + '{ withRef: true } as the fourth argument of the connect() call.');
+
+	        return this.refs.wrappedInstance;
+	      };
+
+	      Connect.prototype.render = function render() {
+	        var haveOwnPropsChanged = this.haveOwnPropsChanged;
+	        var hasStoreStateChanged = this.hasStoreStateChanged;
+	        var renderedElement = this.renderedElement;
+
+	        this.haveOwnPropsChanged = false;
+	        this.hasStoreStateChanged = false;
+
+	        var shouldUpdateStateProps = true;
+	        var shouldUpdateDispatchProps = true;
+	        if (pure && renderedElement) {
+	          shouldUpdateStateProps = hasStoreStateChanged || haveOwnPropsChanged && doStatePropsDependOnOwnProps;
+	          shouldUpdateDispatchProps = haveOwnPropsChanged && doDispatchPropsDependOnOwnProps;
+	        }
+
+	        var haveStatePropsChanged = false;
+	        var haveDispatchPropsChanged = false;
+	        if (shouldUpdateStateProps) {
+	          haveStatePropsChanged = this.updateStatePropsIfNeeded();
+	        }
+	        if (shouldUpdateDispatchProps) {
+	          haveDispatchPropsChanged = this.updateDispatchPropsIfNeeded();
+	        }
+
+	        var haveMergedPropsChanged = true;
+	        if (haveStatePropsChanged || haveDispatchPropsChanged || haveOwnPropsChanged) {
+	          this.updateMergedProps();
+	        } else {
+	          haveMergedPropsChanged = false;
+	        }
+
+	        if (!haveMergedPropsChanged && renderedElement) {
+	          return renderedElement;
+	        }
+
+	        if (withRef) {
+	          this.renderedElement = createElement(WrappedComponent, _extends({}, this.mergedProps, {
+	            ref: 'wrappedInstance'
+	          }));
+	        } else {
+	          this.renderedElement = createElement(WrappedComponent, this.mergedProps);
+	        }
+
+	        return this.renderedElement;
+	      };
+
+	      return Connect;
+	    })(Component);
+
+	    Connect.displayName = 'Connect(' + getDisplayName(WrappedComponent) + ')';
+	    Connect.WrappedComponent = WrappedComponent;
+	    Connect.contextTypes = {
+	      store: storeShape
+	    };
+	    Connect.propTypes = {
+	      store: storeShape
+	    };
+
+	    if (process.env.NODE_ENV !== 'production') {
+	      Connect.prototype.componentWillUpdate = function componentWillUpdate() {
+	        if (this.version === version) {
+	          return;
+	        }
+
+	        // We are hot reloading!
+	        this.version = version;
+	        this.trySubscribe();
+	        this.clearCache();
+	      };
+	    }
+
+	    return hoistStatics(Connect, WrappedComponent);
+	  };
+	}
+
+	module.exports = connect;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 172 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	function shallowEqual(objA, objB) {
+	  if (objA === objB) {
+	    return true;
+	  }
+
+	  var keysA = Object.keys(objA);
+	  var keysB = Object.keys(objB);
+
+	  if (keysA.length !== keysB.length) {
+	    return false;
+	  }
+
+	  // Test for A's keys different from B.
+	  var hasOwn = Object.prototype.hasOwnProperty;
+	  for (var i = 0; i < keysA.length; i++) {
+	    if (!hasOwn.call(objB, keysA[i]) || objA[keysA[i]] !== objB[keysA[i]]) {
+	      return false;
+	    }
+	  }
+
+	  return true;
+	}
+
+	module.exports = shallowEqual;
+
+/***/ },
+/* 173 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	function _typeof(obj) { return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj; }
+
+	var fnToString = function fnToString(fn) {
+	  return Function.prototype.toString.call(fn);
+	};
+
+	/**
+	 * @param {any} obj The object to inspect.
+	 * @returns {boolean} True if the argument appears to be a plain object.
+	 */
+	function isPlainObject(obj) {
+	  if (!obj || (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) !== 'object') {
+	    return false;
+	  }
+
+	  var proto = typeof obj.constructor === 'function' ? Object.getPrototypeOf(obj) : Object.prototype;
+
+	  if (proto === null) {
+	    return true;
+	  }
+
+	  var constructor = proto.constructor;
+
+	  return typeof constructor === 'function' && constructor instanceof constructor && fnToString(constructor) === fnToString(Object);
+	}
+
+	module.exports = isPlainObject;
+
+/***/ },
+/* 174 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _redux = __webpack_require__(159);
+
+	function wrapActionCreators(actionCreators) {
+	  return function (dispatch) {
+	    return (0, _redux.bindActionCreators)(actionCreators, dispatch);
+	  };
+	}
+
+	module.exports = wrapActionCreators;
+
+/***/ },
+/* 175 */
+/***/ function(module, exports) {
+
+	/**
+	 * Copyright 2015, Yahoo! Inc.
+	 * Copyrights licensed under the New BSD License. See the accompanying LICENSE file for terms.
+	 */
+	'use strict';
+
+	var REACT_STATICS = {
+	    childContextTypes: true,
+	    contextTypes: true,
+	    defaultProps: true,
+	    displayName: true,
+	    getDefaultProps: true,
+	    mixins: true,
+	    propTypes: true,
+	    type: true
+	};
+
+	var KNOWN_STATICS = {
+	    name: true,
+	    length: true,
+	    prototype: true,
+	    caller: true,
+	    arguments: true,
+	    arity: true
+	};
+
+	module.exports = function hoistNonReactStatics(targetComponent, sourceComponent) {
+	    var keys = Object.getOwnPropertyNames(sourceComponent);
+	    for (var i=0; i<keys.length; ++i) {
+	        if (!REACT_STATICS[keys[i]] && !KNOWN_STATICS[keys[i]]) {
+	            targetComponent[keys[i]] = sourceComponent[keys[i]];
+	        }
+	    }
+
+	    return targetComponent;
+	};
+
+
+/***/ },
+/* 176 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-2015, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 */
+
+	'use strict';
+
+	/**
+	 * Use invariant() to assert state which your program assumes to be true.
+	 *
+	 * Provide sprintf-style format (only %s is supported) and arguments
+	 * to provide information about what broke and what you were
+	 * expecting.
+	 *
+	 * The invariant message will be stripped in production, but the invariant
+	 * will remain to ensure logic does not differ in production.
+	 */
+
+	var invariant = function(condition, format, a, b, c, d, e, f) {
+	  if (process.env.NODE_ENV !== 'production') {
+	    if (format === undefined) {
+	      throw new Error('invariant requires an error message argument');
+	    }
+	  }
+
+	  if (!condition) {
+	    var error;
+	    if (format === undefined) {
+	      error = new Error(
+	        'Minified exception occurred; use the non-minified dev environment ' +
+	        'for the full error message and additional helpful warnings.'
+	      );
+	    } else {
+	      var args = [a, b, c, d, e, f];
+	      var argIndex = 0;
+	      error = new Error(
+	        format.replace(/%s/g, function() { return args[argIndex++]; })
+	      );
+	      error.name = 'Invariant Violation';
+	    }
+
+	    error.framesToPop = 1; // we don't care about invariant's own frame
+	    throw error;
+	  }
+	};
+
+	module.exports = invariant;
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 177 */
+/***/ function(module, exports, __webpack_require__) {
+
 	// the whatwg-fetch polyfill installs the fetch() function
 	// on the global object (window or self)
 	//
 	// Return that as the export for use in Webpack, Browserify etc.
-	__webpack_require__(169);
+	__webpack_require__(178);
 	module.exports = self.fetch.bind(self);
 
 
 /***/ },
-/* 169 */
+/* 178 */
 /***/ function(module, exports) {
 
 	(function() {
@@ -20995,7 +21615,7 @@
 
 
 /***/ },
-/* 170 */
+/* 179 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -21014,14 +21634,11 @@
 	module.exports = thunkMiddleware;
 
 /***/ },
-/* 171 */
+/* 180 */
 /***/ function(module, exports) {
 
 	"use strict";
 
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
 	var repeat = function repeat(str, times) {
 	  return new Array(times + 1).join(str);
 	};
@@ -21181,11 +21798,10 @@
 	  };
 	}
 
-	exports.default = createLogger;
-	module.exports = exports['default'];
+	module.exports = createLogger;
 
 /***/ },
-/* 172 */
+/* 181 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -21200,7 +21816,7 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _Header = __webpack_require__(173);
+	var _Header = __webpack_require__(182);
 
 	var _Header2 = _interopRequireDefault(_Header);
 
@@ -21224,10 +21840,12 @@
 	  _createClass(Main, [{
 	    key: "render",
 	    value: function render() {
+	      var steamProfile = this.props.steamProfile;
+
 	      return _react2.default.createElement(
 	        "div",
 	        null,
-	        _react2.default.createElement(_Header2.default, null)
+	        _react2.default.createElement(_Header2.default, { steamProfile: steamProfile })
 	      );
 	    }
 	  }]);
@@ -21238,7 +21856,7 @@
 	exports.default = Main;
 
 /***/ },
-/* 173 */
+/* 182 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -21253,13 +21871,21 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _Authorization = __webpack_require__(174);
+	var _SteamProfile = __webpack_require__(183);
 
-	var _Authorization2 = _interopRequireDefault(_Authorization);
+	var _SteamProfile2 = _interopRequireDefault(_SteamProfile);
 
-	var _header = __webpack_require__(183);
+	var _header = __webpack_require__(184);
 
 	var _header2 = _interopRequireDefault(_header);
+
+	var _userPanel = __webpack_require__(188);
+
+	var _userPanel2 = _interopRequireDefault(_userPanel);
+
+	var _Login = __webpack_require__(190);
+
+	var _Login2 = _interopRequireDefault(_Login);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -21281,6 +21907,15 @@
 	  _createClass(Header, [{
 	    key: "render",
 	    value: function render() {
+	      var steamProfile = this.props.steamProfile;
+
+	      var UserPanel = undefined;
+	      if (!!steamProfile.name) {
+	        UserPanel = _react2.default.createElement(_SteamProfile2.default, {
+	          steamProfile: steamProfile });
+	      } else {
+	        UserPanel = _react2.default.createElement(_Login2.default, null);
+	      }
 	      return _react2.default.createElement(
 	        "header",
 	        { className: "main-header" },
@@ -21288,7 +21923,11 @@
 	            "fontFamily": "Pacifico",
 	            "fontSize": "50px"
 	          } }),
-	        _react2.default.createElement(_Authorization2.default, null)
+	        _react2.default.createElement(
+	          "aside",
+	          { className: "user-panel" },
+	          UserPanel
+	        )
 	      );
 	    }
 	  }]);
@@ -21299,7 +21938,7 @@
 	exports.default = Header;
 
 /***/ },
-/* 174 */
+/* 183 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -21314,14 +21953,6 @@
 
 	var _react2 = _interopRequireDefault(_react);
 
-	var _Login = __webpack_require__(175);
-
-	var _Login2 = _interopRequireDefault(_Login);
-
-	var _authorization = __webpack_require__(181);
-
-	var _authorization2 = _interopRequireDefault(_authorization);
-
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -21330,115 +21961,58 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var Authorization = (function (_Component) {
-	  _inherits(Authorization, _Component);
+	var SteamProfile = (function (_Component) {
+	  _inherits(SteamProfile, _Component);
 
-	  function Authorization() {
-	    _classCallCheck(this, Authorization);
+	  function SteamProfile() {
+	    _classCallCheck(this, SteamProfile);
 
-	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Authorization).apply(this, arguments));
+	    return _possibleConstructorReturn(this, Object.getPrototypeOf(SteamProfile).apply(this, arguments));
 	  }
 
-	  _createClass(Authorization, [{
+	  _createClass(SteamProfile, [{
 	    key: "render",
 	    value: function render() {
+	      var _props$steamProfile = this.props.steamProfile;
+	      var avatarId = _props$steamProfile.avatarId;
+	      var name = _props$steamProfile.name;
+
 	      return _react2.default.createElement(
-	        "aside",
-	        { className: "authorization" },
-	        _react2.default.createElement(_Login2.default, null)
+	        "div",
+	        null,
+	        _react2.default.createElement("img", { src: "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/be/" + avatarId + "_full.jpg" }),
+	        _react2.default.createElement(
+	          "h5",
+	          null,
+	          name
+	        )
 	      );
 	    }
 	  }]);
 
-	  return Authorization;
+	  return SteamProfile;
 	})(_react.Component);
 
-	exports.default = Authorization;
+	exports.default = SteamProfile;
 
 /***/ },
-/* 175 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-
-	var _react = __webpack_require__(1);
-
-	var _react2 = _interopRequireDefault(_react);
-
-	var _login = __webpack_require__(176);
-
-	var _login2 = _interopRequireDefault(_login);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	var Login = (function (_Component) {
-	  _inherits(Login, _Component);
-
-	  function Login() {
-	    _classCallCheck(this, Login);
-
-	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Login).apply(this, arguments));
-	  }
-
-	  _createClass(Login, [{
-	    key: "render",
-	    value: function render() {
-	      return _react2.default.createElement("a", {
-	        className: "login",
-	        onClick: this.registrationPoppup
-	      });
-	    }
-	  }, {
-	    key: "registrationPoppup",
-	    value: function registrationPoppup() {
-	      var width = 990;
-	      var height = 540;
-	      // const left = (window.innerWidth - width) / 2 + window.screenLeft;
-	      // const top = (window.innerHeight - height) / 2 + window.screenTop;
-	      var right = 50 + window.screenLeft;
-	      var top = 50 + window.screenTop;
-	      var signinPoppup = window.open("\n        https://steamcommunity.com/openid/login?\n        openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select&\n        openid.identity=http://specs.openid.net/auth/2.0/identifier_select&\n        openid.ns=http://specs.openid.net/auth/2.0&\n        openid.mode=checkid_setup&\n        openid.return_to=http://localhost:5000/signin&\n        openid.realm=http://localhost:5000/\n      ", null, "\n        width=" + width + ",\n        height=" + height + ",\n        right=" + right + ",\n        top=" + top + "\n      ");
-	      if (window.focus) {
-	        signinPoppup.focus();
-	      }
-	    }
-	  }]);
-
-	  return Login;
-	})(_react.Component);
-
-	exports.default = Login;
-
-/***/ },
-/* 176 */
+/* 184 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(177);
+	var content = __webpack_require__(185);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(180)(content, {});
+	var update = __webpack_require__(187)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
 		if(!content.locals) {
-			module.hot.accept("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./login.less", function() {
-				var newContent = require("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./login.less");
+			module.hot.accept("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./header.less", function() {
+				var newContent = require("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./header.less");
 				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 				update(newContent);
 			});
@@ -21448,21 +22022,21 @@
 	}
 
 /***/ },
-/* 177 */
+/* 185 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(178)();
+	exports = module.exports = __webpack_require__(186)();
 	// imports
 
 
 	// module
-	exports.push([module.id, ".login {\n  width: 100%;\n  height: 100%;\n  display: block;\n  border: none;\n  padding: 0;\n  background: none;\n  outline: none;\n  background-image: url(" + __webpack_require__(179) + ");\n  background-position: center center;\n  background-size: 100% 100%;\n  background-repeat: no-repeat;\n  cursor: pointer;\n}\n", ""]);
+	exports.push([module.id, ".main-header {\n  height: 128px;\n  display: flex;\n}\n", ""]);
 
 	// exports
 
 
 /***/ },
-/* 178 */
+/* 186 */
 /***/ function(module, exports) {
 
 	/*
@@ -21518,13 +22092,7 @@
 
 
 /***/ },
-/* 179 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__.p + "eb813d69d6f79d24dde563ecf391bbf5.png";
-
-/***/ },
-/* 180 */
+/* 187 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -21778,23 +22346,23 @@
 
 
 /***/ },
-/* 181 */
+/* 188 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(182);
+	var content = __webpack_require__(189);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(180)(content, {});
+	var update = __webpack_require__(187)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
 		if(!content.locals) {
-			module.hot.accept("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./authorization.less", function() {
-				var newContent = require("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./authorization.less");
+			module.hot.accept("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./user-panel.less", function() {
+				var newContent = require("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./user-panel.less");
 				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 				update(newContent);
 			});
@@ -21804,37 +22372,103 @@
 	}
 
 /***/ },
-/* 182 */
+/* 189 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(178)();
+	exports = module.exports = __webpack_require__(186)();
 	// imports
 
 
 	// module
-	exports.push([module.id, ".authorization {\n  margin-left: auto;\n  width: 128px;\n  height: 100%;\n}\n", ""]);
+	exports.push([module.id, ".user-panel {\n  margin-left: auto;\n  width: 128px;\n  height: 100%;\n}\n", ""]);
 
 	// exports
 
 
 /***/ },
-/* 183 */
+/* 190 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _react = __webpack_require__(1);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	var _login = __webpack_require__(191);
+
+	var _login2 = _interopRequireDefault(_login);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var Login = (function (_Component) {
+	  _inherits(Login, _Component);
+
+	  function Login() {
+	    _classCallCheck(this, Login);
+
+	    return _possibleConstructorReturn(this, Object.getPrototypeOf(Login).apply(this, arguments));
+	  }
+
+	  _createClass(Login, [{
+	    key: "render",
+	    value: function render() {
+	      return _react2.default.createElement("a", {
+	        className: "login",
+	        onClick: this.registrationPoppup
+	      });
+	    }
+	  }, {
+	    key: "registrationPoppup",
+	    value: function registrationPoppup() {
+	      var width = 990;
+	      var height = 540;
+	      // const left = (window.innerWidth - width) / 2 + window.screenLeft;
+	      // const top = (window.innerHeight - height) / 2 + window.screenTop;
+	      var right = 50 + window.screenLeft;
+	      var top = 50 + window.screenTop;
+	      var signinPoppup = window.open("\n        https://steamcommunity.com/openid/login?\n        openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select&\n        openid.identity=http://specs.openid.net/auth/2.0/identifier_select&\n        openid.ns=http://specs.openid.net/auth/2.0&\n        openid.mode=checkid_setup&\n        openid.return_to=http://localhost:5000/signin&\n        openid.realm=http://localhost:5000/\n      ", null, "\n        width=" + width + ",\n        height=" + height + ",\n        right=" + right + ",\n        top=" + top + "\n      ");
+	      if (window.focus) {
+	        signinPoppup.focus();
+	      }
+	    }
+	  }]);
+
+	  return Login;
+	})(_react.Component);
+
+	exports.default = Login;
+
+/***/ },
+/* 191 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(184);
+	var content = __webpack_require__(192);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(180)(content, {});
+	var update = __webpack_require__(187)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
 		// When the styles change, update the <style> tags
 		if(!content.locals) {
-			module.hot.accept("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./header.less", function() {
-				var newContent = require("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./header.less");
+			module.hot.accept("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./login.less", function() {
+				var newContent = require("!!./../../node_modules/css-loader/index.js!./../../node_modules/less-loader/index.js!./login.less");
 				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 				update(newContent);
 			});
@@ -21844,30 +22478,36 @@
 	}
 
 /***/ },
-/* 184 */
+/* 192 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(178)();
+	exports = module.exports = __webpack_require__(186)();
 	// imports
 
 
 	// module
-	exports.push([module.id, ".main-header {\n  height: 128px;\n  display: flex;\n}\n", ""]);
+	exports.push([module.id, ".login {\n  width: 100%;\n  height: 100%;\n  display: block;\n  border: none;\n  padding: 0;\n  background: none;\n  outline: none;\n  background-image: url(" + __webpack_require__(193) + ");\n  background-position: center center;\n  background-size: 100% 100%;\n  background-repeat: no-repeat;\n  cursor: pointer;\n}\n", ""]);
 
 	// exports
 
 
 /***/ },
-/* 185 */
+/* 193 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "eb813d69d6f79d24dde563ecf391bbf5.png";
+
+/***/ },
+/* 194 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(186);
+	var content = __webpack_require__(195);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(180)(content, {});
+	var update = __webpack_require__(187)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -21884,10 +22524,10 @@
 	}
 
 /***/ },
-/* 186 */
+/* 195 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(178)();
+	exports = module.exports = __webpack_require__(186)();
 	// imports
 
 
@@ -21898,7 +22538,7 @@
 
 
 /***/ },
-/* 187 */
+/* 196 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -21909,70 +22549,71 @@
 	  value: true
 	});
 
-	var _cookie = __webpack_require__(188);
+	var _cookie = __webpack_require__(197);
 
-	var _shortid = __webpack_require__(189);
+	var _shortid = __webpack_require__(198);
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	var WsSession = (function () {
 	  function WsSession(serverUrl) {
+	    var _this = this;
+
 	    _classCallCheck(this, WsSession);
 
+	    var defaults = {
+	      isReady: false,
+	      queue: []
+	    };
+	    Object.assign(this, defaults);
 	    var cookieObj = (0, _cookie.parse)(document.cookie);
-	    if (cookieObj.wsSessionId) {
-	      this.wsSessionId = cookieObj.wsSessionId;
+	    if (cookieObj.sessionId) {
+	      this.sessionId = cookieObj.sessionId;
 	    } else {
-	      this.wsSessionId = (0, _shortid.generate)();
-	      document.cookie = "wsSessionId=" + this.wsSessionId + ";";
+	      this.sessionId = (0, _shortid.generate)();
+	      document.cookie = "sessionId=" + this.sessionId + ";";
 	    }
-	    this.firsts = [];
-	    var firsts = this.firsts;
 	    this.webSocket = new WebSocket(serverUrl);
-	    var webSocket = this.webSocket;
-	    webSocket.addEventListener("open", function () {
-	      firsts.forEach(function (messageJSON) {
-	        webSocket.send(messageJSON);
+	    this.webSocket.addEventListener("open", function () {
+	      _this.isReady = true;
+	      _this.queue.forEach(function (messageJSON) {
+	        _this.webSocket.send(messageJSON);
 	      });
+	      _this.queue.length = 0;
 	    });
 	  }
-	  // first (eventName, data) {
-	  //   const firsts = this.firsts
-	  //   const message = {
-	  //     eventName: eventName,
-	  //     data: data
-	  //   }
-	  //   const messageJSON = JSON.stringify(message)
-	  //   firsts.push(messageJSON)
-	  // }
 
 	  _createClass(WsSession, [{
 	    key: "on",
 	    value: function on(eventName, onCallback) {
-	      var _this = this;
+	      var _this2 = this;
 
-	      var wsSession = this;
-	      var webSocket = this.webSocket;
-	      webSocket.addEventListener("message", function (event) {
+	      this.webSocket.addEventListener("message", function (event) {
 	        var messageJSON = event.data;
 	        var message = JSON.parse(messageJSON);
 	        var remoteEventName = message.eventName;
 	        if (eventName === remoteEventName) {
 	          var messageData = message.data;
-	          onCallback.apply(_this, messageData);
+	          onCallback.apply(_this2, messageData);
 	        }
 	      });
 	    }
 	  }, {
 	    key: "to",
-	    value: function to(eventName, data) {
-	      var webSocket = this.webSocket;
+	    value: function to(eventName, data, callback) {
 	      var message = {
 	        eventName: eventName,
 	        data: data
 	      };
 	      var messageJSON = JSON.stringify(message);
-	      webSocket.send(messageJSON);
+	      if (this.isReady) {
+	        this.webSocket.send(messageJSON);
+	      } else {
+	        this.queue.push(messageJSON);
+	      }
+	      if (Boolean(callback)) {
+	        callback;
+	      }
 	    }
 	  }]);
 
@@ -21982,7 +22623,7 @@
 	exports.default = WsSession;
 
 /***/ },
-/* 188 */
+/* 197 */
 /***/ function(module, exports) {
 
 	/*!
@@ -22146,23 +22787,23 @@
 
 
 /***/ },
-/* 189 */
+/* 198 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	module.exports = __webpack_require__(190);
+	module.exports = __webpack_require__(199);
 
 
 /***/ },
-/* 190 */
+/* 199 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var alphabet = __webpack_require__(191);
-	var encode = __webpack_require__(193);
-	var decode = __webpack_require__(195);
-	var isValid = __webpack_require__(196);
+	var alphabet = __webpack_require__(200);
+	var encode = __webpack_require__(202);
+	var decode = __webpack_require__(204);
+	var isValid = __webpack_require__(205);
 
 	// Ignore all milliseconds before a certain time to reduce the size of the date entropy without sacrificing uniqueness.
 	// This number should be updated every year or so to keep the generated id short.
@@ -22177,7 +22818,7 @@
 	// has a unique value for worker
 	// Note: I don't know if this is automatically set when using third
 	// party cluster solutions such as pm2.
-	var clusterWorkerId = __webpack_require__(197) || 0;
+	var clusterWorkerId = __webpack_require__(206) || 0;
 
 	// Counter is used when shortid is called multiple times in one second.
 	var counter;
@@ -22260,12 +22901,12 @@
 
 
 /***/ },
-/* 191 */
+/* 200 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var randomFromSeed = __webpack_require__(192);
+	var randomFromSeed = __webpack_require__(201);
 
 	var ORIGINAL = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-';
 	var alphabet;
@@ -22364,7 +23005,7 @@
 
 
 /***/ },
-/* 192 */
+/* 201 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -22395,12 +23036,12 @@
 
 
 /***/ },
-/* 193 */
+/* 202 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var randomByte = __webpack_require__(194);
+	var randomByte = __webpack_require__(203);
 
 	function encode(lookup, number) {
 	    var loopCounter = 0;
@@ -22420,7 +23061,7 @@
 
 
 /***/ },
-/* 194 */
+/* 203 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -22440,11 +23081,11 @@
 
 
 /***/ },
-/* 195 */
+/* 204 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var alphabet = __webpack_require__(191);
+	var alphabet = __webpack_require__(200);
 
 	/**
 	 * Decode the id to get the version and worker
@@ -22463,11 +23104,11 @@
 
 
 /***/ },
-/* 196 */
+/* 205 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var alphabet = __webpack_require__(191);
+	var alphabet = __webpack_require__(200);
 
 	function isShortId(id) {
 	    if (!id || typeof id !== 'string' || id.length < 6 ) {
@@ -22488,7 +23129,7 @@
 
 
 /***/ },
-/* 197 */
+/* 206 */
 /***/ function(module, exports) {
 
 	'use strict';

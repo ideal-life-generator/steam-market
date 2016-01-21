@@ -1,14 +1,15 @@
-import React, { Component } from "react";
-import Header from "./Header";
+import React, { Component } from "react"
+import Header from "./Header"
 
 class Main extends Component {
   render () {
+    const { steamProfile } = this.props
     return (
       <div>
-        <Header />
+        <Header steamProfile={steamProfile} />
       </div>
     )
   }
 }
 
-export default Main;
+export default Main

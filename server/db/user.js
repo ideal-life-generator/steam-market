@@ -25,18 +25,18 @@ import crypto from "crypto"
 // SELECT * FROM users WHERE "steamId"='76561198198917706' LIMIT 1;
 
 const user = {
-  exist (db, steamId, existCallback) {
+  exist (db, steamId, callback) {
     db.query(`
       SELECT EXISTS(SELECT 1 FROM users WHERE "steamId"=$1);
     `, [ steamId ], (err, result) => {
       if (err) { throw err }
       else {
         const { rows: [ { exists: isExist } ] } = result
-        existCallback(isExist)
+        callback(isExist)
       }
     })
   },
-  get (db, steamId, getCallback) {
+  get (db, steamId, callback) {
     const tokenBase64 = crypto.randomBytes(16, "base64")
     const token = tokenBase64.toString("base64")
     db.query(`
@@ -47,11 +47,11 @@ const user = {
       if (err) { throw err }
       else {
         const { rows: [ user ] } = result
-        getCallback(user)
+        callback(user)
       }
     })
   },
-  create (db, steamId, createCallback) {
+  create (db, steamId, callback) {
     const tokenBase64 = crypto.randomBytes(16, "base64")
     const token = tokenBase64.toString("base64")
     db.query(`
@@ -69,11 +69,11 @@ const user = {
       else {
         const { rows: [ user ] } = result
         const isCreated = user ? true : false
-        createCallback(isCreated)
+        callback(isCreated)
       }
     })
   },
-  getToken (db, steamId, get) {
+  getToken (db, steamId, callback) {
     db.query(`
       UPDATE users SET
         token=$2
@@ -84,11 +84,11 @@ const user = {
       else {
         const { rows: [ user ] } = result
         const isUpdatedToken = user ? true : false
-        get(isUpdatedToken)
+        callback(isUpdatedToken)
       }
     })
   },
-  updateToken (db, steamId, updateTokenCallback) {
+  updateToken (db, steamId, callback) {
     const tokenBase64 = crypto.randomBytes(16, "base64")
     const token = tokenBase64.toString("base64")
     db.query(`
@@ -101,7 +101,18 @@ const user = {
       else {
         const { rows: [ user ] } = result
         const isUpdatedToken = user ? true : false
-        updateTokenCallback(isUpdatedToken)
+        callback(isUpdatedToken)
+      }
+    })
+  },
+  checkToken (db, steamId, token, callback) {
+    db.query(`
+      SELECT EXISTS(SELECT 1 FROM users WHERE "steamId"=$1 AND "token"=$2);
+    `, [ steamId, token ], (err, result) => {
+      if (err) { throw err }
+      else {
+        const { rows: [ { exists: isExist } ] } = result
+        callback(isExist)
       }
     })
   }

@@ -48,7 +48,6 @@ class WsSessions {
           sockets.splice(socketIndex, 1)
           const socketIndexSession = currentSession.indexOf(socket)
           currentSession.splice(socketIndexSession, 1)
-          socket.close()
           socket.terminate()
         })
       })

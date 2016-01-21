@@ -18,20 +18,15 @@ function signin (wsSessions, db) {
       }
       else {
         wsSessions.to(sessionId, "signin.resolve")
-        // let getProfilePromise = new Promise((resolve, reject) => {
         getProfile(steamId, (steamProfile) => {
           wsSessions.to(sessionId, "user.steam-profile.take", steamProfile)
-          // resolve(steamProfile)
         })
-        // })
-        // let createOrGetUserPromise = new Promise((resolve, reject) => {
         user.exist(db, steamId, (isExist) => {
           if (isExist) {
             user.updateToken(db, steamId, (isTokenUpdated) => {
               if (isTokenUpdated) {
                 user.get(db, steamId, (user) => {
                   wsSessions.to(sessionId, "user.take", user)
-                  // resolve(user)
                 })
               }
               else {
@@ -44,7 +39,6 @@ function signin (wsSessions, db) {
               if (isCreated) {
                 user.get(db, steamId, (user) => {
                   wsSessions.to(sessionId, "user.take", user)
-                  // resolve(user)
                 })
               }
               else {
@@ -53,11 +47,6 @@ function signin (wsSessions, db) {
             })
           }
         })
-        // })
-        // let userPromise = Promise.all([ getProfilePromise, createOrGetUserPromise ])
-        // userPromise.then(([ steamProfile, user ]) => {
-        //   wsSessions.to(sessionId, "signin.resolve", steamProfile, user)
-        // })
       }
     })
   })

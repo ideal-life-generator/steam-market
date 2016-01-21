@@ -1,12 +1,15 @@
 import React from "react"
 import { render } from "react-dom"
 import { createStore, combineReducers, applyMiddleware } from "redux"
+import { Provider, connect } from "react-redux"
 import fetch from "isomorphic-fetch"
 import thunkMiddleware from "redux-thunk"
 import createLogger from "redux-logger"
 import Main from "./components/Main"
 import common from "./styles/common.less"
 import WsSession from "./ws-session"
+
+const wsSession = new WsSession("ws://localhost:5001")
 
 // import { Router, Route, Link } from "react-router"
 // import createHistory from "history/lib/createHashHistory"
@@ -19,7 +22,27 @@ import WsSession from "./ws-session"
 //   <Route path="/" component={Main} />
 // </Router>
 
-const wsSession = new WsSession("ws://localhost:5001")
+class User {
+  constructor () {
+    const steamId = localStorage.steamId
+    const token = localStorage.token
+    if (Boolean(steamId) && Boolean(token)) {
+      const user = {
+        steamId,
+        token
+      }
+      wsSession.to("user.check", user, (isExist) => {
+        console.log(isExist)
+      })
+    }
+  }
+  store ({ steamId, token }) {
+    localStorage.setItem("steamId", steamId)
+    localStorage.setItem("token", token)
+  }
+}
+
+let user = new User()
 
 const REQUEST_USER = "REQUEST_USER"
 
@@ -34,7 +57,14 @@ const RECEIVE_USER = "RECEIVE_USER"
 function receiveUser (user) {
   return {
     type: RECEIVE_USER,
-    user: user
+    user
+  }
+}
+
+function saveOrUpdateUser (userData) {
+  user.store(userData)
+  return (dispatch, getState) => {
+    dispatch(receiveUser(userData))
   }
 }
 
@@ -70,7 +100,7 @@ function user (
     case RECEIVE_USER:
       return Object.assign({ }, state, {
         isFetching: false,
-        user: action.user
+        ...action.user
       })
     default:
       return state
@@ -108,30 +138,28 @@ function steamProfile (
     case RECEIVE_STEAM_PROFILE:
       return Object.assign({ }, state, {
         isFetching: false,
-        steamProfile: action.steamProfile
+        ...action.steamProfile
       })
     default:
       return state
   }
 }
 
-const rootReducer = combineReducers({
-  user,
-  steamProfile
-})
+const RECEIVE_CHECK_USER = "RECEIVE_CHECK_USER"
 
-let store = createStore(rootReducer)
-
-store.subscribe(() => {
-  console.log(store.getState())
-})
+function requestCheckUser (user) {
+  return {
+    type: RECEIVE_CHECK_USER,
+    user
+  }
+}
 
 wsSession.on("signin.resolve", () => {
   // console.log("signin.resolve")
 })
 
 wsSession.on("user.take", (user) => {
-  store.dispatch(receiveUser(user))
+  store.dispatch(saveOrUpdateUser(user))
 })
 
 wsSession.on("user.steam-profile.take", (steamProfile) => {
@@ -146,9 +174,29 @@ wsSession.on("user.steam-profile.take", (steamProfile) => {
 
 // appStore.dispatch(signedInUser({ name: "Vlad" }))
 
+const rootReducer = combineReducers({
+  user,
+  steamProfile
+})
+
+const loggerMiddleware = createLogger()
+
+const createStoreWithMiddleware = applyMiddleware(
+  thunkMiddleware,
+  loggerMiddleware
+)(createStore)
+
+let store = createStoreWithMiddleware(rootReducer)
+
+let MainConnected = connect((state) => {
+  return state
+})(Main)
+
 render(
   (
-    <Main />
+    <Provider store={store}>
+      <MainConnected />
+    </Provider>
   )
   , document.getElementById("app")
 )
