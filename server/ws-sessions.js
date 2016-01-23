@@ -4,8 +4,8 @@ class WsSessions {
   static getSessionId (socket) {
     try {
       const { upgradeReq: { headers: { cookie: socketCookie } } } = socket
-      const { wsSessionId: sessionId } = cookieParse(socketCookie)
-      return sessionId
+      const { wsSessionId: wsSessionId } = cookieParse(socketCookie)
+      return wsSessionId
     }
     catch (error) { throw error }
   }
@@ -29,9 +29,9 @@ class WsSessions {
         // firsts.forEach((currentMessageJSON) => {
         //   socket.send(currentMessageJSON)
         // })
-        const sessionId = WsSessions.getSessionId(socket)
-        if (!sessions[sessionId]) sessions[sessionId] = [ ]
-        const currentSession = sessions[sessionId]
+        const wsSessionId = WsSessions.getSessionId(socket)
+        if (!sessions[wsSessionId]) sessions[wsSessionId] = [ ]
+        const currentSession = sessions[wsSessionId]
         currentSession.push(socket)
         events.forEach(({ eventName, onCallback }) => {
           socket.on("message", (currentMessageJSON) => {
@@ -39,7 +39,7 @@ class WsSessions {
             const remoteEventName = currentMessage.eventName
             const messageData = currentMessage.data
             if (remoteEventName === eventName) {
-              onCallback(messageData, sessionId)
+              onCallback(messageData, wsSessionId)
             }
           })
         })
@@ -77,12 +77,12 @@ class WsSessions {
     }
     catch (error) { throw error }
   }
-  to (sessionId, eventName) {
+  to (wsSessionId, eventName) {
     try {
       const data = Array.prototype.slice.call(arguments, 2)
-      if (!!sessionId) {
+      if (!!wsSessionId) {
         const sessions = this.sessions
-        const currentSession = sessions[sessionId]
+        const currentSession = sessions[wsSessionId]
         currentSession.forEach((socket) => {
           const currentMessage = {
             eventName: eventName,

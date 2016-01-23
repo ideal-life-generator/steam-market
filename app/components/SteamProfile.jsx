@@ -5,7 +5,7 @@ class SteamProfile extends Component {
     const { avatarId, name } = this.props.steamProfile
     return (
       <div>
-        <img src={ `https:\/\/steamcdn-a.akamaihd.net\/steamcommunity\/public\/images\/avatars\/be\/${avatarId}_full.jpg` } />
+        <img src={ `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/${avatarId}_full.jpg` } />
         <h5>{ name }</h5>
       </div>
     )

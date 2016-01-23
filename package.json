@@ -1,9 +1,10 @@
 {
-  "version": "0.0.2",
+  "version": "0.0.0",
   "description": "A trade marked place. Work with CS:GO skins. Can install it in mobile.",
   "repository": "https://github.com/timetoburnfire/steam-market",
   "scripts": {
-    "dev": "nodemon start --watch start.js --watch server --exec babel-node --presets es2015,stage-2 & webpack --watch --display-error-details"
+    "nodemon": "nodemon start --watch start.js --watch server --exec babel-node --presets es2015,stage-2",
+    "webpack": "webpack --watch --progress --colors --display-error-details"
   },
   "dependencies": {
     "cookie": "^0.2.3",
@@ -21,9 +22,11 @@
     "ws": "^0.8.1"
   },
   "devDependencies": {
+    "babel-cli": "^6.4.5",
     "babel-core": "^6.3.21",
     "babel-loader": "^6.2.0",
     "babel-preset-es2015": "^6.3.13",
+    "babel-preset-react": "^6.3.13",
     "babel-preset-stage-2": "^6.3.13",
     "css-loader": "*",
     "file-loader": "^0.8.5",

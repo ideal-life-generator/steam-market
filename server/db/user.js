@@ -37,8 +37,6 @@ const user = {
     })
   },
   get (db, steamId, callback) {
-    const tokenBase64 = crypto.randomBytes(16, "base64")
-    const token = tokenBase64.toString("base64")
     db.query(`
       SELECT * FROM users WHERE
         "steamId"=$1

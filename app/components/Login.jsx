@@ -1,5 +1,5 @@
-import React, { Component } from "react";
-import login from "styles/login.less";
+import React, { Component } from "react"
+import login from "styles/login.less"
 
 class Login extends Component {
   render () {
@@ -9,16 +9,16 @@ class Login extends Component {
         onClick={this.registrationPoppup}
       >
       </a>
-    );
+    )
   }
 
   registrationPoppup () {
-    const width = 990;
-    const height = 540;
-    // const left = (window.innerWidth - width) / 2 + window.screenLeft;
-    // const top = (window.innerHeight - height) / 2 + window.screenTop;
-    const right = 50 + window.screenLeft;
-    const top = 50 + window.screenTop;
+    const width = 990
+    const height = 540
+    // const left = (window.innerWidth - width) / 2 + window.screenLeft
+    // const top = (window.innerHeight - height) / 2 + window.screenTop
+    const right = 50 + window.screenLeft
+    const top = 50 + window.screenTop
     let signinPoppup = window.open(
       `
         https://steamcommunity.com/openid/login?
@@ -36,11 +36,11 @@ class Login extends Component {
         right=${right},
         top=${top}
       `
-    );
+    )
     if (window.focus) {
-      signinPoppup.focus();
+      signinPoppup.focus()
     }
   }
 }
 
-export default Login;
+export default Login

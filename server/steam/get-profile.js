@@ -2,9 +2,12 @@ import httpRequest from "./../http-request"
 import { STEAM_API_KEY } from "./../../config"
 
 function getAvatarId (avatarUrl) {
-  const avatarMatch = avatarUrl.match(/https:\/\/steamcdn-a.akamaihd.net\/steamcommunity\/public\/images\/avatars\/be\/(.*).jpg/)
-  const avatarId = avatarMatch[1]
-  return avatarId
+  try {
+    const avatarMatch = avatarUrl.match(/https:\/\/steamcdn-a.akamaihd.net\/steamcommunity\/public\/images\/avatars\/(.*).jpg/)
+    const avatarId = avatarMatch[1]
+    return avatarId
+  }
+  catch (error) { }
 }
 
 function getProfile (steamId, steamProfileCallback) {

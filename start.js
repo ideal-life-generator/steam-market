@@ -4,6 +4,7 @@ import WsSessions from "./server/ws-sessions"
 import pg from "pg"
 import fileStream from "./server/api/file-stream"
 import signin from "./server/api/signin"
+import userCheck from "./server/api/user-check"
 import { PORT_HTTP_SERVER, PATH_HTTP_SERVER, PATH_DB_SERVER, PORT_SOCKET_SERVER } from "./config"
 
 const httpServer = http.createServer((req, res) => {
@@ -15,18 +16,10 @@ const httpServer = http.createServer((req, res) => {
 const socketServer = new ws.Server({ port: PORT_SOCKET_SERVER })
 const wsSessions = new WsSessions(socketServer)
 
-
-import user from "./server/db/user"
-
 pg.connect(PATH_DB_SERVER, (error, db, done) => {
   if (error) { throw error }
   else {
     signin(wsSessions, db)
-    wsSessions.on("user.check", ({ steamId, token }, sessionId) => {
-      console.log(steamId, token)
-      user.checkToken(db, steamId, token, (isExist) => {
-        console.log(isExist)
-      })
-    })
+    userCheck(wsSessions, db)
   }
 })

@@ -19,7 +19,7 @@ function signin (wsSessions, db) {
       else {
         wsSessions.to(sessionId, "signin.resolve")
         getProfile(steamId, (steamProfile) => {
-          wsSessions.to(sessionId, "user.steam-profile.take", steamProfile)
+          wsSessions.to(sessionId, "steam-profile.take", steamProfile)
         })
         user.exist(db, steamId, (isExist) => {
           if (isExist) {

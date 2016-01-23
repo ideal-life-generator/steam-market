@@ -1,56 +1,64 @@
-import { parse as cookieParse } from "cookie"
-import { generate as generateId } from "shortid"
+import { parse } from "cookie"
+import { randomBytes } from "crypto"
 
+let handlers = [ ]
 class WsSession {
   constructor (serverUrl) {
-    const defaults = {
-      isReady: false,
-      queue: [ ]
-    }
-    Object.assign(this, defaults)
-    const cookieObj = cookieParse(document.cookie)
-    if (cookieObj.sessionId) {
-      this.sessionId = cookieObj.sessionId
+    const cookieObj = parse(document.cookie)
+    if (cookieObj.wsSessionId) {
+      this.wsSessionId = cookieObj.wsSessionId
     }
     else {
-      this.sessionId = generateId()
-      document.cookie = `sessionId=${this.sessionId};`
+      this.wsSessionId = randomBytes(16, "base64").toString("base64")
+      document.cookie = `wsSessionId=${this.wsSessionId};`
     }
     this.webSocket = new WebSocket(serverUrl)
-    this.webSocket.addEventListener("open", () => {
-      this.isReady = true
-      this.queue.forEach((messageJSON) => {
-        this.webSocket.send(messageJSON)
-      })
-      this.queue.length = 0
-    })
   }
-  on (eventName, onCallback) {
-    this.webSocket.addEventListener("message", (event) => {
-      const messageJSON = event.data
+  ready (callback) {
+    let handler = () => {
+      callback()
+      this.off(handlerId)
+      // this.webSocket.removeEventListener("open", callback)
+    }
+    this.webSocket.addEventListener("open", handler)
+    const handlerId = handlers.push(handler)-1
+    return handlerId
+  }
+  once (eventName, callback) {
+    let handler = () => {
+      callback()
+      this.off(handlerId)
+    }
+    const handlerId = this.on(eventName, handler)
+    return handlerId
+  }
+  on (eventName, callback) {
+    function handler (event) {
+      const { data: messageJSON } = event
       const message = JSON.parse(messageJSON)
-      const remoteEventName = message.eventName
+      const { remoteEventName, messageData } = message
       if (eventName === remoteEventName) {
-        const messageData = message.data
-        onCallback.apply(this, messageData)
+        callback.apply(null, messageData)
+      }
+    }
+    this.webSocket.addEventListener("message", handler)
+    return handlers.push(handler)-1
+  }
+  off () {
+    Array.prototype.forEach.call(arguments, (handlerId) => {
+      if (Boolean(handlers[handlerId])) {
+        this.webSocket.removeEventListener("message", handlers[handlerId])
+        handlers.splice(handlerId, 1)
       }
     })
   }
-  to (eventName, data, callback) {
+  to (eventName, data) {
     const message = {
       eventName: eventName,
       data: data
     }
     const messageJSON = JSON.stringify(message)
-    if (this.isReady) {
-      this.webSocket.send(messageJSON)
-    }
-    else {
-      this.queue.push(messageJSON)
-    }
-    if (Boolean(callback)) {
-      callback
-    }
+    this.webSocket.send(messageJSON)
   }
 }
 
