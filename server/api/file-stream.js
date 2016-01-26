@@ -13,7 +13,7 @@ const TEMPLATES_SUPPORTED = [
   },
   {
     test: /^\/signin$/,
-    path: "templates/signin.html"
+    path: "additionals/signin.html"
   }
 ]
 

@@ -77,34 +77,49 @@ class WsSessions {
     }
     catch (error) { throw error }
   }
-  to (wsSessionId, eventName) {
-    try {
-      const data = Array.prototype.slice.call(arguments, 2)
-      if (!!wsSessionId) {
-        const sessions = this.sessions
-        const currentSession = sessions[wsSessionId]
-        currentSession.forEach((socket) => {
-          const currentMessage = {
-            eventName: eventName,
-            data: data
-          }
-          const currentMessageJSON = JSON.stringify(currentMessage)
-          socket.send(currentMessageJSON)
-        })
+  to (sessionId, eventName) {
+    const data = Array.prototype.slice.call(arguments, 2)
+    let messages = data.map((message, id) => {
+      if (Boolean(message)) {
+        return message
       }
-      else {
-        const sockets = this.sockets
-        sockets.forEach((socket) => {
-          const currentMessage = {
-            eventName: eventName,
-            data: data
-          }
-          const currentMessageJSON = JSON.stringify(currentMessage)
-          socket.send(currentMessageJSON)
-        })
-      }
+    })
+    const message = {
+      eventName,
+      messages
     }
-    catch (error) { throw error }
+    const messageJSON = JSON.stringify(message)
+    if (Boolean(sessionId)) {
+      const { [ sessionId ]: session } = this.sessions
+      session.forEach((socket) => {
+        socket.send(messageJSON)
+      })
+    }
+    else {
+
+    }
+      // if (!!wsSessionId) {
+      //   const currentSession = sessions[wsSessionId]
+      //   currentSession.forEach((socket) => {
+      //     const message = {
+      //       eventName: eventName,
+      //       data: data
+      //     }
+      //     const messageJSON = JSON.stringify(currentMessage)
+      //     socket.send(currentMessageJSON)
+      //   })
+      // }
+      // else {
+      //   const sockets = this.sockets
+      //   sockets.forEach((socket) => {
+      //     const currentMessage = {
+      //       eventName: eventName,
+      //       data: data
+      //     }
+      //     const currentMessageJSON = JSON.stringify(currentMessage)
+      //     socket.send(currentMessageJSON)
+      //   })
+      // }
   }
 }
 

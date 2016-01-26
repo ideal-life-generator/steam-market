@@ -1,21 +1,19 @@
 import { REQUEST_USER, RECEIVE_USER } from "constants/user"
+import { LOGOUT } from "constants/logout"
 
-function user (
-  state = {
-    isFetching: false,
-    isInvalid: false
-  }
-, action) {
+function user (state = { }, action) {
   switch (action.type) {
     case REQUEST_USER:
-      return Object.assign({ }, state, {
-        isFetching: true
-      })
+      return {
+        ...state
+      }
     case RECEIVE_USER:
-      return Object.assign({ }, state, {
-        isFetching: false,
+      return {
+        ...state,
         ...action.user
-      })
+      }
+    case LOGOUT:
+      return { }
     default:
       return state
   }

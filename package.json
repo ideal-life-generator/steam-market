@@ -19,7 +19,8 @@
     "redux-logger": "^2.3.2",
     "redux-thunk": "^1.0.3",
     "shortid": "^2.2.4",
-    "ws": "^0.8.1"
+    "ws": "^0.8.1",
+    "ws-session": "^1.0.12"
   },
   "devDependencies": {
     "babel-cli": "^6.4.5",

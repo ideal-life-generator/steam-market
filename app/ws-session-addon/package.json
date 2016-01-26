@@ -1,0 +1,34 @@
+{
+  "author": {
+    "email": "timetoburnfire@gmail.com",
+    "name": "Vladislav Tkachenko"
+  },
+  "bugs": {
+    "email": "wssessionaddon.sup@gmail.com",
+    "url": "https://github.com/timetoburnfire/ws-session-addon/issues"
+  },
+  "dependencies": { },
+  "description": "Wrap of ws-session. Add new feature to relative plugin.",
+  "devDependencies": { },
+  "homepage": "https://github.com/timetoburnfire/ws-session-addon#readme",
+  "keywords": [
+    "session",
+    "web socket",
+    "ws",
+    "ws-session",
+    "ws-sessions"
+  ],
+  "license": "MIT",
+  "maintainers": [
+    {
+      "name": "timetoburnfire",
+      "email": "timetoburnfire@gmail.com"
+    }
+  ],
+  "name": "ws-session-addon",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timetoburnfire/ws-session-addon.git"
+  },
+  "version": "0.0.5"
+}

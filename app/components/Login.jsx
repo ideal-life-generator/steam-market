@@ -6,17 +6,13 @@ class Login extends Component {
     return (
       <a
         className="login"
-        onClick={this.registrationPoppup}
-      >
+        onClick={this.registrationPoppup}>
       </a>
     )
   }
-
   registrationPoppup () {
     const width = 990
     const height = 540
-    // const left = (window.innerWidth - width) / 2 + window.screenLeft
-    // const top = (window.innerHeight - height) / 2 + window.screenTop
     const right = 50 + window.screenLeft
     const top = 50 + window.screenTop
     let signinPoppup = window.open(
@@ -37,9 +33,6 @@ class Login extends Component {
         top=${top}
       `
     )
-    if (window.focus) {
-      signinPoppup.focus()
-    }
   }
 }
 

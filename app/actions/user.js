@@ -1,4 +1,4 @@
-import { REQUEST_USER, RECEIVE_USER, RECEIVE_CHECK_USER } from "constants/user"
+import { REQUEST_USER, RECEIVE_USER, LOGOUT_USER } from "constants/user"
 
 function requestUser () {
   return {
@@ -13,22 +13,18 @@ function receiveUser (user) {
   }
 }
 
-function requestCheckUser (user) {
-  return {
-    type: RECEIVE_CHECK_USER,
-    user
-  }
-}
-
 function storeUser (user) {
   const { steamId, token } = user
   if (Boolean(steamId) && Boolean(token)) {
     localStorage.setItem("steamId", steamId)
     localStorage.setItem("token", token)
   }
+  else {
+    throw new Error("User is undefined")
+  }
   return (dispatch, getState) => {
     dispatch(receiveUser(user))
   }
 }
 
-export { requestUser, receiveUser, requestCheckUser, storeUser }
+export { requestUser, receiveUser, storeUser }

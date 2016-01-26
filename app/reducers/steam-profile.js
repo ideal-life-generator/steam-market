@@ -1,21 +1,32 @@
 import { REQUEST_STEAM_PROFILE, RECEIVE_STEAM_PROFILE } from "constants/steam-profile"
+import { LOGOUT } from "constants/logout"
 
 function steamProfile (
   state = {
-    isFetching: false,
-    isInvalid: false
+    isValid: false,
+    isLoad: false
   }
 , action) {
   switch (action.type) {
     case REQUEST_STEAM_PROFILE:
-      return Object.assign({ }, state, {
-        isFetching: true
-      })
+      return {
+        ...state,
+        isValid: false,
+        isLoad: true
+      }
     case RECEIVE_STEAM_PROFILE:
-      return Object.assign({ }, state, {
-        isFetching: false,
+      return {
+        ...state,
+        isValid: true,
+        isLoad: false,
         ...action.steamProfile
-      })
+      }
+    case LOGOUT:
+      return {
+        ...state,
+        isValid: false,
+        isLoad: false
+      }
     default:
       return state
   }

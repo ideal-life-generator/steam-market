@@ -16,13 +16,4 @@ const createStoreWithMiddleware = applyMiddleware(
   loggerMiddleware
 )(createStore)
 
-let defaultState = {
-  user: {
-    isChecking: true
-  },
-  steamProfile: null
-}
-
-let store = createStoreWithMiddleware(rootReducer, defaultState)
-
-export default store
+export default createStoreWithMiddleware(rootReducer)
