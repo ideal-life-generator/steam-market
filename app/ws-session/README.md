@@ -1,6 +1,7 @@
 # ws-session
 
 # Don't donwload it now, it work currently with **ws-sessions***. Now it in progress.
+=====================================================================================
 
 #### **Install**
 ```
@@ -73,7 +74,7 @@ subscribeOnce("from-server", (data) => {
   // ...
 })
 ```
-It is the same.
+Is the same.
 #### Other things
 ```
 let { sessionId } = connection
@@ -82,7 +83,7 @@ console.log(sessionId) // current session id
 ```
 Current sessions identifier, is same for all tabs in current browser.
 ```
-let { webSocket } = connection
+const { webSocket } = connection
 
 webSocket.send("Send manually")
 ```
