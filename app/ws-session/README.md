@@ -1,90 +1,109 @@
 # ws-session
 
-# Don't donwload it now, it work currently with **ws-sessions***. Now it in progress.
-=====================================================================================
+## *Don't donwload it now, it work currently with ws-sessions. Now it in progress.*
 
-#### **Install**
+Simple realization of Web Socket connection with session id.
+
+## Installation
+
+```bash
+$ npm install ws-session
 ```
-npm install ws-session --save
-```
-#### **Usage**
-#### Connect to server
-```
+
+## Example
+
+```js
 import connect from "ws-session"
 
-let connection = connect("ws://localhost:5000")
-```
-It return an instance of Web Socket connection.
-#### Connected
-```
-let { connected } = connection
+const { connected, subscribe, send } = connect("ws://localhost:5000")
 
+connected(() => {
+  send("greeting", "hi")
+})
+
+sibscribe("response", (data) => {
+  send("present", "I'm a node.js developer.")
+})
+```
+
+## Usage
+
+Firstly you must initialize connection to the server:
+
+#### connect(url)
+
+```js
+const { connected, send, subscribe, subscribeOnce, sessionId, webSocket } = connect("ws://localhost:5000")
+```
+
+Is returns easy functionality to communicate with server, which is described in detail below.
+
+## API
+
+#### connected(callback)
+
+```js
 connected(() => {
   // ...
 })
 ```
-It can be used when you socket is connected.
-#### Send message
-```
-let { send } = connection
 
-send("to-server", "hello")
-```
-Send message to **ws-sessions** server.
-Supports all data what can be parsed to json:
-```
-send("to-server", { foo })
-```
-If you want send an message immediately after your application is started:
-```
+Callback invoked when a connection is ready.
+
+Must be used if you want to send a message as soon as the application is running:
+
+```js
 connected(() => {
-  send("user.check", {
-    id,
-    token
-  })
+  send("user.check", { id, token })
 })
 ```
-#### Subscribe
-```
-let { subscribe } = connection
 
-subscribe("from-server", (data) => {
+#### send(event, data...)
+
+```js
+send("user.update", user)
+```
+
+Send message to the server.
+
+#### subscribe(event, callback)
+
+```js
+subscribe("user.updated", (user) => {
   // ...
 })
 ```
-Subscribe to **ws-sockets** server messages.
-It return an **unsubscribe** function for remove subscribe:
-```
-let unsubscribe = subscribe("from-server", (data) => {
-  // ...
-})
 
-unsubscribe() // don't subscribe any more
-```
-Also if you want subscribe to message once, you can use **subscribeOnce** method:
-```
-let { subscribe, subscribeOnce } = connection
+Subscribe to an event from the server.
 
-let unsubscribe = subscribe("from-server", (data) => {
+Returns a function to unsubscribe:
+
+```js
+const unsubscribe = subscribe("settings.default-language", (language) => {
   // ...
   unsubscribe()
 })
+```
 
-subscribeOnce("from-server", (data) => {
+#### subscribeOnce(event, callback)
+
+```js
+subscribeOnce("settings.default-language", (language) => {
   // ...
 })
 ```
-Is the same.
-#### Other things
-```
-let { sessionId } = connection
 
-console.log(sessionId) // current session id
-```
-Current sessions identifier, is same for all tabs in current browser.
-```
-const { webSocket } = connection
+Сan be used if you want to subscribe to an event once.
 
-webSocket.send("Send manually")
-```
-If you need do some other things what are not included, use **webSocket**. Is pure WebSocket instance.
+#### sessionId
+
+The session identifier. It is used by the server to communicate with all connections.
+
+#### webSocket
+
+Pure Web Socket instance used in the current connection.
+
+
+## If the plugin is good
+
+MasterCard: 5300-7211-1281-6316
