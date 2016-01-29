@@ -1,9 +1,9 @@
 import { parse } from "cookie"
 import { generate } from "shortid"
 
-function connect () {
+function connect (url) {
 
-  let webSocket = new WebSocket.apply(WebSocket, arguments)
+  let webSocket = new WebSocket(url)
 
   const cookieObj = parse(document.cookie)
   let { wsSessionId: sessionId } = cookieObj  

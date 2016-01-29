@@ -15,16 +15,15 @@ class Main extends Component {
         token
       }
       connected(() => {
-        sendOnce("user.check", user, () => {
-          dispatch(receiveUser(user))
-        })
+        send("user.check", user)
       })
       dispatch(requestSteamProfile())
     }
-    subscribe("steam-profile", (steamProfile) => {
+    subscribe("steam-profile.response", (steamProfile) => {
       dispatch(receiveSteamProfile(steamProfile))
     })
-    subscribe("user", (user) => {
+    subscribe("user.response", (user) => {
+      console.log(user)
       dispatch(storeUser(user))
     })
   }

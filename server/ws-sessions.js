@@ -79,14 +79,14 @@ class WsSessions {
   }
   to (sessionId, eventName) {
     const data = Array.prototype.slice.call(arguments, 2)
-    let messages = data.map((message, id) => {
-      if (Boolean(message)) {
-        return message
-      }
-    })
+    // let messages = data.map((message, id) => {
+    //   if (Boolean(message)) {
+    //     return message
+    //   }
+    // })
     const message = {
       eventName,
-      messages
+      data
     }
     const messageJSON = JSON.stringify(message)
     if (Boolean(sessionId)) {
@@ -96,7 +96,7 @@ class WsSessions {
       })
     }
     else {
-
+      socket.send(messageJSON)
     }
       // if (!!wsSessionId) {
       //   const currentSession = sessions[wsSessionId]

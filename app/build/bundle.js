@@ -56,6 +56,8 @@
 
 	var _wsSession = __webpack_require__(177);
 
+	var _wsSession2 = _interopRequireDefault(_wsSession);
+
 	var _wsSessionAddon = __webpack_require__(188);
 
 	var _store = __webpack_require__(189);
@@ -75,7 +77,7 @@
 	(0, _reactDom.render)(_react2.default.createElement(
 	  _reactRedux.Provider,
 	  { store: _store2.default },
-	  _react2.default.createElement(_Main2.default, { connect: (0, _wsSessionAddon.addon)((0, _wsSession.connect)("ws://localhost:5001")) })
+	  _react2.default.createElement(_Main2.default, { connect: (0, _wsSession2.default)("ws://localhost:5001") })
 	), document.getElementById("app"));
 
 /***/ },
@@ -9335,6 +9337,7 @@
 	 */
 	var EventInterface = {
 	  type: null,
+	  target: null,
 	  // currentTarget is set when dispatching; no use in copying it here
 	  currentTarget: emptyFunction.thatReturnsNull,
 	  eventPhase: null,
@@ -9368,8 +9371,6 @@
 	  this.dispatchConfig = dispatchConfig;
 	  this.dispatchMarker = dispatchMarker;
 	  this.nativeEvent = nativeEvent;
-	  this.target = nativeEventTarget;
-	  this.currentTarget = nativeEventTarget;
 
 	  var Interface = this.constructor.Interface;
 	  for (var propName in Interface) {
@@ -9380,7 +9381,11 @@
 	    if (normalize) {
 	      this[propName] = normalize(nativeEvent);
 	    } else {
-	      this[propName] = nativeEvent[propName];
+	      if (propName === 'target') {
+	        this.target = nativeEventTarget;
+	      } else {
+	        this[propName] = nativeEvent[propName];
+	      }
 	    }
 	  }
 
@@ -13229,7 +13234,10 @@
 	      }
 	    });
 
-	    nativeProps.children = content;
+	    if (content) {
+	      nativeProps.children = content;
+	    }
+
 	    return nativeProps;
 	  }
 
@@ -18702,7 +18710,7 @@
 
 	'use strict';
 
-	module.exports = '0.14.6';
+	module.exports = '0.14.7';
 
 /***/ },
 /* 147 */
@@ -20134,7 +20142,7 @@
 /* 166 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
+	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
 	exports.__esModule = true;
 
@@ -20144,27 +20152,40 @@
 
 	var _createStore2 = _interopRequireDefault(_createStore);
 
-	var _utilsCombineReducers = __webpack_require__(169);
+	var _combineReducers = __webpack_require__(169);
 
-	var _utilsCombineReducers2 = _interopRequireDefault(_utilsCombineReducers);
+	var _combineReducers2 = _interopRequireDefault(_combineReducers);
 
-	var _utilsBindActionCreators = __webpack_require__(172);
+	var _bindActionCreators = __webpack_require__(172);
 
-	var _utilsBindActionCreators2 = _interopRequireDefault(_utilsBindActionCreators);
+	var _bindActionCreators2 = _interopRequireDefault(_bindActionCreators);
 
-	var _utilsApplyMiddleware = __webpack_require__(173);
+	var _applyMiddleware = __webpack_require__(173);
 
-	var _utilsApplyMiddleware2 = _interopRequireDefault(_utilsApplyMiddleware);
+	var _applyMiddleware2 = _interopRequireDefault(_applyMiddleware);
 
-	var _utilsCompose = __webpack_require__(174);
+	var _compose = __webpack_require__(174);
 
-	var _utilsCompose2 = _interopRequireDefault(_utilsCompose);
+	var _compose2 = _interopRequireDefault(_compose);
+
+	/*
+	* This is a dummy function to check if the function name has been altered by minification.
+	* If the function has been minified and NODE_ENV !== 'production', warn the user.
+	*/
+	function isCrushed() {}
+
+	if (isCrushed.name !== 'isCrushed' && process.env.NODE_ENV !== 'production') {
+	  /*eslint-disable no-console */
+	  console.error('You are currently using minified code outside of NODE_ENV === \'production\'. ' + 'This means that you are running a slower development build of Redux. ' + 'You can use loose-envify (https://github.com/zertosh/loose-envify) for browserify ' + 'or DefinePlugin for webpack (http://stackoverflow.com/questions/30030031) ' + 'to ensure you have the correct code for your production build.');
+	  /*eslint-enable */
+	}
 
 	exports.createStore = _createStore2['default'];
-	exports.combineReducers = _utilsCombineReducers2['default'];
-	exports.bindActionCreators = _utilsBindActionCreators2['default'];
-	exports.applyMiddleware = _utilsApplyMiddleware2['default'];
-	exports.compose = _utilsCompose2['default'];
+	exports.combineReducers = _combineReducers2['default'];
+	exports.bindActionCreators = _bindActionCreators2['default'];
+	exports.applyMiddleware = _applyMiddleware2['default'];
+	exports.compose = _compose2['default'];
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
 /* 167 */
@@ -20209,11 +20230,29 @@
 	 * If you use `combineReducers` to produce the root reducer function, this must be
 	 * an object with the same shape as `combineReducers` keys.
 	 *
+	 * @param {Function} enhancer The store enhancer. You may optionally specify it
+	 * to enhance the store with third-party capabilities such as middleware,
+	 * time travel, persistence, etc. The only store enhancer that ships with Redux
+	 * is `applyMiddleware()`.
+	 *
 	 * @returns {Store} A Redux store that lets you read the state, dispatch actions
 	 * and subscribe to changes.
 	 */
 
-	function createStore(reducer, initialState) {
+	function createStore(reducer, initialState, enhancer) {
+	  if (typeof initialState === 'function' && typeof enhancer === 'undefined') {
+	    enhancer = initialState;
+	    initialState = undefined;
+	  }
+
+	  if (typeof enhancer !== 'undefined') {
+	    if (typeof enhancer !== 'function') {
+	      throw new Error('Expected the enhancer to be a function.');
+	    }
+
+	    return enhancer(createStore)(reducer, initialState);
+	  }
+
 	  if (typeof reducer !== 'function') {
 	    throw new Error('Expected the reducer to be a function.');
 	  }
@@ -20236,6 +20275,9 @@
 	   * Adds a change listener. It will be called any time an action is dispatched,
 	   * and some part of the state tree may potentially have changed. You may then
 	   * call `getState()` to read the current state tree inside the callback.
+	   * Note, the listener should not expect to see all states changes, as the
+	   * state might have been updated multiple times before the listener is
+	   * notified.
 	   *
 	   * @param {Function} listener A callback to be invoked on every dispatch.
 	   * @returns {Function} A function to remove this change listener.
@@ -20383,17 +20425,17 @@
 
 	var _createStore = __webpack_require__(167);
 
-	var _isPlainObject = __webpack_require__(168);
+	var _utilsIsPlainObject = __webpack_require__(168);
 
-	var _isPlainObject2 = _interopRequireDefault(_isPlainObject);
+	var _utilsIsPlainObject2 = _interopRequireDefault(_utilsIsPlainObject);
 
-	var _mapValues = __webpack_require__(170);
+	var _utilsMapValues = __webpack_require__(170);
 
-	var _mapValues2 = _interopRequireDefault(_mapValues);
+	var _utilsMapValues2 = _interopRequireDefault(_utilsMapValues);
 
-	var _pick = __webpack_require__(171);
+	var _utilsPick = __webpack_require__(171);
 
-	var _pick2 = _interopRequireDefault(_pick);
+	var _utilsPick2 = _interopRequireDefault(_utilsPick);
 
 	/* eslint-disable no-console */
 
@@ -20404,20 +20446,20 @@
 	  return 'Reducer "' + key + '" returned undefined handling ' + actionName + '. ' + 'To ignore an action, you must explicitly return the previous state.';
 	}
 
-	function getUnexpectedStateKeyWarningMessage(inputState, outputState, action) {
-	  var reducerKeys = Object.keys(outputState);
+	function getUnexpectedStateShapeWarningMessage(inputState, reducers, action) {
+	  var reducerKeys = Object.keys(reducers);
 	  var argumentName = action && action.type === _createStore.ActionTypes.INIT ? 'initialState argument passed to createStore' : 'previous state received by the reducer';
 
 	  if (reducerKeys.length === 0) {
 	    return 'Store does not have a valid reducer. Make sure the argument passed ' + 'to combineReducers is an object whose values are reducers.';
 	  }
 
-	  if (!_isPlainObject2['default'](inputState)) {
+	  if (!_utilsIsPlainObject2['default'](inputState)) {
 	    return 'The ' + argumentName + ' has unexpected type of "' + ({}).toString.call(inputState).match(/\s([a-z|A-Z]+)/)[1] + '". Expected argument to be an object with the following ' + ('keys: "' + reducerKeys.join('", "') + '"');
 	  }
 
 	  var unexpectedKeys = Object.keys(inputState).filter(function (key) {
-	    return reducerKeys.indexOf(key) < 0;
+	    return !reducers.hasOwnProperty(key);
 	  });
 
 	  if (unexpectedKeys.length > 0) {
@@ -20459,7 +20501,7 @@
 	 */
 
 	function combineReducers(reducers) {
-	  var finalReducers = _pick2['default'](reducers, function (val) {
+	  var finalReducers = _utilsPick2['default'](reducers, function (val) {
 	    return typeof val === 'function';
 	  });
 	  var sanityError;
@@ -20470,19 +20512,22 @@
 	    sanityError = e;
 	  }
 
-	  var defaultState = _mapValues2['default'](finalReducers, function () {
-	    return undefined;
-	  });
-
 	  return function combination(state, action) {
-	    if (state === undefined) state = defaultState;
+	    if (state === undefined) state = {};
 
 	    if (sanityError) {
 	      throw sanityError;
 	    }
 
+	    if (process.env.NODE_ENV !== 'production') {
+	      var warningMessage = getUnexpectedStateShapeWarningMessage(state, finalReducers, action);
+	      if (warningMessage) {
+	        console.error(warningMessage);
+	      }
+	    }
+
 	    var hasChanged = false;
-	    var finalState = _mapValues2['default'](finalReducers, function (reducer, key) {
+	    var finalState = _utilsMapValues2['default'](finalReducers, function (reducer, key) {
 	      var previousStateForKey = state[key];
 	      var nextStateForKey = reducer(previousStateForKey, action);
 	      if (typeof nextStateForKey === 'undefined') {
@@ -20492,13 +20537,6 @@
 	      hasChanged = hasChanged || nextStateForKey !== previousStateForKey;
 	      return nextStateForKey;
 	    });
-
-	    if (process.env.NODE_ENV !== 'production') {
-	      var warningMessage = getUnexpectedStateKeyWarningMessage(state, finalState, action);
-	      if (warningMessage) {
-	        console.error(warningMessage);
-	      }
-	    }
 
 	    return hasChanged ? finalState : state;
 	  };
@@ -20570,9 +20608,9 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-	var _mapValues = __webpack_require__(170);
+	var _utilsMapValues = __webpack_require__(170);
 
-	var _mapValues2 = _interopRequireDefault(_mapValues);
+	var _utilsMapValues2 = _interopRequireDefault(_utilsMapValues);
 
 	function bindActionCreator(actionCreator, dispatch) {
 	  return function () {
@@ -20611,7 +20649,7 @@
 	    throw new Error('bindActionCreators expected an object or a function, instead received ' + (actionCreators === null ? 'null' : typeof actionCreators) + '. ' + 'Did you write "import ActionCreators from" instead of "import * as ActionCreators from"?');
 	  }
 
-	  return _mapValues2['default'](actionCreators, function (actionCreator) {
+	  return _utilsMapValues2['default'](actionCreators, function (actionCreator) {
 	    return bindActionCreator(actionCreator, dispatch);
 	  });
 	}
@@ -20658,9 +20696,9 @@
 	    middlewares[_key] = arguments[_key];
 	  }
 
-	  return function (next) {
-	    return function (reducer, initialState) {
-	      var store = next(reducer, initialState);
+	  return function (createStore) {
+	    return function (reducer, initialState, enhancer) {
+	      var store = createStore(reducer, initialState, enhancer);
 	      var _dispatch = store.dispatch;
 	      var chain = [];
 
@@ -20705,10 +20743,17 @@
 	    funcs[_key] = arguments[_key];
 	  }
 
-	  return function (arg) {
-	    return funcs.reduceRight(function (composed, f) {
+	  return function () {
+	    if (funcs.length === 0) {
+	      return arguments[0];
+	    }
+
+	    var last = funcs[funcs.length - 1];
+	    var rest = funcs.slice(0, -1);
+
+	    return rest.reduceRight(function (composed, f) {
 	      return f(composed);
-	    }, arg);
+	    }, last.apply(undefined, arguments));
 	  };
 	}
 
@@ -20823,14 +20868,15 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.connect = undefined;
 
 	var _cookie = __webpack_require__(178);
 
 	var _shortid = __webpack_require__(179);
 
-	function connect(connectUrl) {
-	  var webSocket = new WebSocket(connectUrl);
+	function connect(url) {
+
+	  var webSocket = new WebSocket(url);
+
 	  var cookieObj = (0, _cookie.parse)(document.cookie);
 	  var sessionId = cookieObj.wsSessionId;
 
@@ -20838,6 +20884,7 @@
 	    sessionId = (0, _shortid.generate)();
 	    document.cookie = "wsSessionId=" + sessionId + ";";
 	  }
+
 	  function connected(callback) {
 	    var handler = function handler() {
 	      callback();
@@ -20848,6 +20895,7 @@
 	      webSocket.removeEventListener("open", handler);
 	    };
 	  }
+
 	  function subscribeOnce(eventName, callback) {
 	    function handler() {
 	      callback.apply(null, arguments);
@@ -20856,6 +20904,7 @@
 	    var unsubscribe = subscribe(eventName, handler);
 	    return unsubscribe;
 	  }
+
 	  function subscribe(eventName, callback) {
 	    function handler(event) {
 	      var messageJSON = event.data;
@@ -20873,11 +20922,13 @@
 	      webSocket.removeEventListener("message", handler);
 	    };
 	  }
+
 	  function send(eventName, data) {
 	    var message = { eventName: eventName, data: data };
 	    var messageJSON = JSON.stringify(message);
 	    webSocket.send(messageJSON);
 	  }
+
 	  return {
 	    sessionId: sessionId,
 	    webSocket: webSocket,
@@ -20888,7 +20939,7 @@
 	  };
 	}
 
-	exports.connect = connect;
+	exports.default = connect;
 
 /***/ },
 /* 178 */
@@ -21510,126 +21561,156 @@
 
 	function createLogger() {
 	  var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+	  var _options$level = options.level;
+	  var level = _options$level === undefined ? "log" : _options$level;
+	  var _options$logger = options.logger;
+	  var logger = _options$logger === undefined ? window.console : _options$logger;
+	  var _options$logErrors = options.logErrors;
+	  var logErrors = _options$logErrors === undefined ? true : _options$logErrors;
+	  var collapsed = options.collapsed;
+	  var predicate = options.predicate;
+	  var _options$duration = options.duration;
+	  var duration = _options$duration === undefined ? false : _options$duration;
+	  var _options$timestamp = options.timestamp;
+	  var timestamp = _options$timestamp === undefined ? true : _options$timestamp;
+	  var transformer = options.transformer;
+	  var _options$stateTransfo = options.stateTransformer;
+	  var // deprecated
+	  stateTransformer = _options$stateTransfo === undefined ? function (state) {
+	    return state;
+	  } : _options$stateTransfo;
+	  var _options$actionTransf = options.actionTransformer;
+	  var actionTransformer = _options$actionTransf === undefined ? function (actn) {
+	    return actn;
+	  } : _options$actionTransf;
+	  var _options$errorTransfo = options.errorTransformer;
+	  var errorTransformer = _options$errorTransfo === undefined ? function (error) {
+	    return error;
+	  } : _options$errorTransfo;
+	  var _options$colors = options.colors;
+	  var colors = _options$colors === undefined ? {
+	    title: function title() {
+	      return "#000000";
+	    },
+	    prevState: function prevState() {
+	      return "#9E9E9E";
+	    },
+	    action: function action() {
+	      return "#03A9F4";
+	    },
+	    nextState: function nextState() {
+	      return "#4CAF50";
+	    },
+	    error: function error() {
+	      return "#F20404";
+	    }
+	  } : _options$colors;
+
+	  // exit if console undefined
+
+	  if (typeof logger === "undefined") {
+	    return function () {
+	      return function (next) {
+	        return function (action) {
+	          return next(action);
+	        };
+	      };
+	    };
+	  }
+
+	  if (transformer) {
+	    console.error("Option 'transformer' is deprecated, use stateTransformer instead");
+	  }
+
+	  var logBuffer = [];
+	  function printBuffer() {
+	    logBuffer.forEach(function (logEntry, key) {
+	      var started = logEntry.started;
+	      var action = logEntry.action;
+	      var prevState = logEntry.prevState;
+	      var error = logEntry.error;
+	      var took = logEntry.took;
+	      var nextState = logEntry.nextState;
+
+	      var nextEntry = logBuffer[key + 1];
+	      if (nextEntry) {
+	        nextState = nextEntry.prevState;
+	        took = nextEntry.started - started;
+	      }
+	      // message
+	      var formattedAction = actionTransformer(action);
+	      var time = new Date(started);
+	      var isCollapsed = typeof collapsed === "function" ? collapsed(function () {
+	        return nextState;
+	      }, action) : collapsed;
+
+	      var formattedTime = formatTime(time);
+	      var titleCSS = colors.title ? "color: " + colors.title(formattedAction) + ";" : null;
+	      var title = "action " + formattedAction.type + (timestamp ? formattedTime : "") + (duration ? " in " + took.toFixed(2) + " ms" : "");
+
+	      // render
+	      try {
+	        if (isCollapsed) {
+	          if (colors.title) logger.groupCollapsed("%c " + title, titleCSS);else logger.groupCollapsed(title);
+	        } else {
+	          if (colors.title) logger.group("%c " + title, titleCSS);else logger.group(title);
+	        }
+	      } catch (e) {
+	        logger.log(title);
+	      }
+
+	      if (colors.prevState) logger[level]("%c prev state", "color: " + colors.prevState(prevState) + "; font-weight: bold", prevState);else logger[level]("prev state", prevState);
+
+	      if (colors.action) logger[level]("%c action", "color: " + colors.action(formattedAction) + "; font-weight: bold", formattedAction);else logger[level]("action", formattedAction);
+
+	      if (error) {
+	        if (colors.error) logger[level]("%c error", "color: " + colors.error(error, prevState) + "; font-weight: bold", error);else logger[level]("error", error);
+	      }
+
+	      if (colors.nextState) logger[level]("%c next state", "color: " + colors.nextState(nextState) + "; font-weight: bold", nextState);else logger[level]("next state", nextState);
+
+	      try {
+	        logger.groupEnd();
+	      } catch (e) {
+	        logger.log("—— log end ——");
+	      }
+	    });
+	    logBuffer.length = 0;
+	  }
 
 	  return function (_ref) {
 	    var getState = _ref.getState;
 	    return function (next) {
 	      return function (action) {
-	        var _options$level = options.level;
-	        var level = _options$level === undefined ? "log" : _options$level;
-	        var _options$logger = options.logger;
-	        var logger = _options$logger === undefined ? window.console : _options$logger;
-	        var _options$logErrors = options.logErrors;
-	        var logErrors = _options$logErrors === undefined ? true : _options$logErrors;
-	        var collapsed = options.collapsed;
-	        var predicate = options.predicate;
-	        var _options$duration = options.duration;
-	        var duration = _options$duration === undefined ? false : _options$duration;
-	        var _options$timestamp = options.timestamp;
-	        var timestamp = _options$timestamp === undefined ? true : _options$timestamp;
-	        var transformer = options.transformer;
-	        var _options$stateTransfo = options.stateTransformer;
-	        var // deprecated
-	        stateTransformer = _options$stateTransfo === undefined ? function (state) {
-	          return state;
-	        } : _options$stateTransfo;
-	        var _options$actionTransf = options.actionTransformer;
-	        var actionTransformer = _options$actionTransf === undefined ? function (actn) {
-	          return actn;
-	        } : _options$actionTransf;
-	        var _options$errorTransfo = options.errorTransformer;
-	        var errorTransformer = _options$errorTransfo === undefined ? function (error) {
-	          return error;
-	        } : _options$errorTransfo;
-	        var _options$colors = options.colors;
-	        var colors = _options$colors === undefined ? {
-	          title: function title() {
-	            return "#000000";
-	          },
-	          prevState: function prevState() {
-	            return "#9E9E9E";
-	          },
-	          action: function action() {
-	            return "#03A9F4";
-	          },
-	          nextState: function nextState() {
-	            return "#4CAF50";
-	          },
-	          error: function error() {
-	            return "#F20404";
-	          }
-	        } : _options$colors;
-
-	        // exit if console undefined
-
-	        if (typeof logger === "undefined") {
-	          return next(action);
-	        }
-
 	        // exit early if predicate function returns false
 	        if (typeof predicate === "function" && !predicate(getState, action)) {
 	          return next(action);
 	        }
 
-	        if (transformer) {
-	          console.error("Option 'transformer' is deprecated, use stateTransformer instead");
-	        }
+	        var logEntry = {};
+	        logBuffer.push(logEntry);
 
-	        var started = timer.now();
-	        var prevState = stateTransformer(getState());
+	        logEntry.started = timer.now();
+	        logEntry.prevState = stateTransformer(getState());
+	        logEntry.action = action;
 
-	        var formattedAction = actionTransformer(action);
 	        var returnedValue = undefined;
-	        var error = undefined;
 	        if (logErrors) {
 	          try {
 	            returnedValue = next(action);
 	          } catch (e) {
-	            error = errorTransformer(e);
+	            logEntry.error = errorTransformer(e);
 	          }
 	        } else {
 	          returnedValue = next(action);
 	        }
 
-	        var took = timer.now() - started;
-	        var nextState = stateTransformer(getState());
+	        logEntry.took = timer.now() - logEntry.started;
+	        logEntry.nextState = stateTransformer(getState());
 
-	        // message
-	        var time = new Date();
-	        var isCollapsed = typeof collapsed === "function" ? collapsed(getState, action) : collapsed;
+	        printBuffer();
 
-	        var formattedTime = formatTime(time);
-	        var titleCSS = colors.title ? "color: " + colors.title(formattedAction) + ";" : null;
-	        var title = "action " + formattedAction.type + (timestamp ? formattedTime : "") + (duration ? " in " + took.toFixed(2) + " ms" : "");
-
-	        // render
-	        try {
-	          if (isCollapsed) {
-	            if (colors.title) logger.groupCollapsed("%c " + title, titleCSS);else logger.groupCollapsed(title);
-	          } else {
-	            if (colors.title) logger.group("%c " + title, titleCSS);else logger.group(title);
-	          }
-	        } catch (e) {
-	          logger.log(title);
-	        }
-
-	        if (colors.prevState) logger[level]("%c prev state", "color: " + colors.prevState(prevState) + "; font-weight: bold", prevState);else logger[level]("prev state", prevState);
-
-	        if (colors.action) logger[level]("%c action", "color: " + colors.action(formattedAction) + "; font-weight: bold", formattedAction);else logger[level]("action", formattedAction);
-
-	        if (error) {
-	          if (colors.error) logger[level]("%c error", "color: " + colors.error(error, prevState) + "; font-weight: bold", error);else logger[level]("error", error);
-	        } else {
-	          if (colors.nextState) logger[level]("%c next state", "color: " + colors.nextState(nextState) + "; font-weight: bold", nextState);else logger[level]("next state", nextState);
-	        }
-
-	        try {
-	          logger.groupEnd();
-	        } catch (e) {
-	          logger.log("—— log end ——");
-	        }
-
-	        if (error) throw error;
+	        if (logEntry.error) throw logEntry.error;
 	        return returnedValue;
 	      };
 	    };
@@ -21830,17 +21911,16 @@
 	            token: token
 	          };
 	          connected(function () {
-	            sendOnce("user.check", user, function () {
-	              dispatch((0, _user.receiveUser)(user));
-	            });
+	            send("user.check", user);
 	          });
 	          dispatch((0, _steamProfile.requestSteamProfile)());
 	        })();
 	      }
-	      subscribe("steam-profile", function (steamProfile) {
+	      subscribe("steam-profile.response", function (steamProfile) {
 	        dispatch((0, _steamProfile.receiveSteamProfile)(steamProfile));
 	      });
-	      subscribe("user", function (user) {
+	      subscribe("user.response", function (user) {
+	        console.log(user);
 	        dispatch((0, _user.storeUser)(user));
 	      });
 	    }

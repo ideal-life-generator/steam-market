@@ -10,7 +10,7 @@ import { PORT_HTTP_SERVER, PATH_HTTP_SERVER, PATH_DB_SERVER, PORT_SOCKET_SERVER 
 const httpServer = http.createServer((req, res) => {
   fileStream(req, res)
 }).listen(PORT_HTTP_SERVER, PATH_HTTP_SERVER, () => {
-  console.log(`HTTP server is listened on ${PATH_HTTP_SERVER}:${PORT_HTTP_SERVER}`)
+  console.info(`HTTP server is listened on ${PATH_HTTP_SERVER}:${PORT_HTTP_SERVER}`)
 })
 
 const socketServer = new ws.Server({ port: PORT_SOCKET_SERVER })

@@ -4,7 +4,7 @@ import crypto from "crypto"
 //   "id" SERIAL UNIQUE,
 //   "steamId" TEXT,
 //   "token" TEXT,
-//   "walletId" INC
+//   "walletId" NUMERIC
 // );
 
 // SELECT EXISTS(SELECT 1 FROM users WHERE "steamId"='76561198198917706');

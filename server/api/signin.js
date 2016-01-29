@@ -14,19 +14,19 @@ function signin (wsSessions, db) {
     const signinQueryCheck = querystring.stringify(signinQueryCheckParsed)
     signinCheck(signinQueryCheck, (err, steamId) => {
       if (err) {
-        wsSessions.to(sessionId, "signin", true)
+        wsSessions.to(sessionId, "signin.reject")
       }
       else {
-        wsSessions.to(sessionId, "signin", null, true)
+        wsSessions.to(sessionId, "signin.resolve")
         getProfile(steamId, (steamProfile) => {
-          wsSessions.to(sessionId, "steam-profile", steamProfile)
+          wsSessions.to(sessionId, "steam-profile.response", steamProfile)
         })
         user.exist(db, steamId, (isExist) => {
           if (isExist) {
             user.updateToken(db, steamId, (isTokenUpdated) => {
               if (isTokenUpdated) {
                 user.get(db, steamId, (user) => {
-                  wsSessions.to(sessionId, "user", user)
+                  wsSessions.to(sessionId, "user.response", user)
                 })
               }
               else {
@@ -38,7 +38,7 @@ function signin (wsSessions, db) {
             user.create(db, steamId, (isCreated) => {
               if (isCreated) {
                 user.get(db, steamId, (user) => {
-                  wsSessions.to(sessionId, "user", user)
+                  wsSessions.to(sessionId, "user.response", user)
                 })
               }
               else {
