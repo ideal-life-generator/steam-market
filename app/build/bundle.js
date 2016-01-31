@@ -77,7 +77,7 @@
 	(0, _reactDom.render)(_react2.default.createElement(
 	  _reactRedux.Provider,
 	  { store: _store2.default },
-	  _react2.default.createElement(_Main2.default, { connect: (0, _wsSession2.default)("ws://localhost:5001") })
+	  _react2.default.createElement(_Main2.default, { connection: (0, _wsSession2.default)("ws://localhost:5001") })
 	), document.getElementById("app"));
 
 /***/ },
@@ -20873,17 +20873,16 @@
 
 	var _shortid = __webpack_require__(179);
 
-	function connect(url) {
+	function session(url) {
+	  var cookieObj = (0, _cookie.parse)(document.cookie);
+	  var socketSessionId = cookieObj.socketSessionId;
+
+	  if (!Boolean(socketSessionId)) {
+	    socketSessionId = (0, _shortid.generate)();
+	    document.cookie = "socketSessionId=" + socketSessionId + ";";
+	  }
 
 	  var webSocket = new WebSocket(url);
-
-	  var cookieObj = (0, _cookie.parse)(document.cookie);
-	  var sessionId = cookieObj.wsSessionId;
-
-	  if (!Boolean(sessionId)) {
-	    sessionId = (0, _shortid.generate)();
-	    document.cookie = "wsSessionId=" + sessionId + ";";
-	  }
 
 	  function connected(callback) {
 	    var handler = function handler() {
@@ -20896,24 +20895,15 @@
 	    };
 	  }
 
-	  function subscribeOnce(eventName, callback) {
-	    function handler() {
-	      callback.apply(null, arguments);
-	      unsubscribe();
-	    }
-	    var unsubscribe = subscribe(eventName, handler);
-	    return unsubscribe;
-	  }
-
-	  function subscribe(eventName, callback) {
+	  function subscribe(identifier, callback) {
 	    function handler(event) {
 	      var messageJSON = event.data;
 
 	      var message = JSON.parse(messageJSON);
-	      var remoteEventName = message.eventName;
+	      var remoteidentifier = message.identifier;
 	      var data = message.data;
 
-	      if (eventName === remoteEventName) {
+	      if (identifier === remoteidentifier) {
 	        callback.apply(null, data);
 	      }
 	    }
@@ -20923,23 +20913,27 @@
 	    };
 	  }
 
-	  function send(eventName, data) {
-	    var message = { eventName: eventName, data: data };
+	  function send(identifier) {
+	    for (var _len = arguments.length, data = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+	      data[_key - 1] = arguments[_key];
+	    }
+
+	    var message = { identifier: identifier, data: data };
 	    var messageJSON = JSON.stringify(message);
 	    webSocket.send(messageJSON);
 	  }
 
 	  return {
-	    sessionId: sessionId,
+	    socketSessionId: socketSessionId,
 	    webSocket: webSocket,
 	    connected: connected,
-	    subscribeOnce: subscribeOnce,
+	    // subscribeOnce,
 	    subscribe: subscribe,
 	    send: send
 	  };
 	}
 
-	exports.default = connect;
+	exports.default = session;
 
 /***/ },
 /* 178 */
@@ -21893,12 +21887,10 @@
 	    key: "componentDidMount",
 	    value: function componentDidMount() {
 	      var _props = this.props;
-	      var _props$connect = _props.connect;
-	      var connected = _props$connect.connected;
-	      var sendOnce = _props$connect.sendOnce;
-	      var send = _props$connect.send;
-	      var subscribeOnce = _props$connect.subscribeOnce;
-	      var subscribe = _props$connect.subscribe;
+	      var _props$connection = _props.connection;
+	      var connected = _props$connection.connected;
+	      var send = _props$connection.send;
+	      var subscribe = _props$connection.subscribe;
 	      var dispatch = _props.dispatch;
 	      var _localStorage = localStorage;
 	      var steamId = _localStorage.steamId;
@@ -21920,7 +21912,6 @@
 	        dispatch((0, _steamProfile.receiveSteamProfile)(steamProfile));
 	      });
 	      subscribe("user.response", function (user) {
-	        console.log(user);
 	        dispatch((0, _user.storeUser)(user));
 	      });
 	    }
@@ -21929,7 +21920,7 @@
 	    value: function render() {
 	      var _props2 = this.props;
 	      var dispatch = _props2.dispatch;
-	      var send = _props2.connect.send;
+	      var send = _props2.connection.send;
 	      var steamProfile = _props2.steamProfile;
 	      var userId = _props2.user.userId;
 

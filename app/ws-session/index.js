@@ -1,16 +1,15 @@
 import { parse } from "cookie"
 import { generate } from "shortid"
 
-function connect (url) {
+function session (url) {
+  const cookieObj = parse(document.cookie)
+  let { socketSessionId } = cookieObj  
+  if (!Boolean(socketSessionId)) {
+    socketSessionId = generate()
+    document.cookie = `socketSessionId=${socketSessionId};`
+  }
 
   let webSocket = new WebSocket(url)
-
-  const cookieObj = parse(document.cookie)
-  let { wsSessionId: sessionId } = cookieObj  
-  if (!Boolean(sessionId)) {
-    sessionId = generate()
-    document.cookie = `wsSessionId=${sessionId};`
-  }
 
   function connected (callback) {
     let handler = () => {
@@ -23,21 +22,12 @@ function connect (url) {
     }
   }
 
-  function subscribeOnce (eventName, callback) {
-    function handler () {
-      callback.apply(null, arguments)
-      unsubscribe()
-    }
-    let unsubscribe = subscribe(eventName, handler)
-    return unsubscribe
-  }
-
-  function subscribe (eventName, callback) {
+  function subscribe (identifier, callback) {
     function handler (event) {
       const { data: messageJSON } = event
       const message = JSON.parse(messageJSON)
-      const { eventName: remoteEventName, data: data } = message
-      if (eventName === remoteEventName) {
+      const { identifier: remoteidentifier, data: data } = message
+      if (identifier === remoteidentifier) {
         callback.apply(null, data)
       }
     }
@@ -47,20 +37,20 @@ function connect (url) {
     }
   }
 
-  function send (eventName, data) {
-    const message = { eventName, data }
+  function send (identifier, ...data) {
+    const message = { identifier, data }
     const messageJSON = JSON.stringify(message)
     webSocket.send(messageJSON)
   }
 
   return {
-    sessionId,
+    socketSessionId,
     webSocket,
     connected,
-    subscribeOnce,
+    // subscribeOnce,
     subscribe,
     send
   }
 }
 
-export default connect
+export default session

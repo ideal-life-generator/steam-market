@@ -2,7 +2,7 @@ import fs from "fs"
 import path from "path"
 import url from "url"
 import querystring from "querystring"
-import { PATH_APP } from "./../../config"
+import { APP_PATH } from "./../../config"
 
 const FILES_SUPPORTED = /.(html|css|js|png|ttf)$/
 
@@ -57,7 +57,7 @@ function checkFileType (filePath) {
 }
 
 function loadTemplate (res, templatePath) {
-  const templateFullPath = path.join(PATH_APP, templatePath)
+  const templateFullPath = path.join(APP_PATH, templatePath)
   try {
     const { contentType } = checkFileType(templateFullPath)
     let supportedFileReadStrem = fs.createReadStream(templateFullPath)
@@ -68,7 +68,7 @@ function loadTemplate (res, templatePath) {
 }
 
 function loadFile (res, filePath) {
-  const fileFullPath = path.join(PATH_APP, filePath)
+  const fileFullPath = path.join(APP_PATH, filePath)
   try {
     const { contentType } = checkFileType(fileFullPath)
     let supportedFileReadStrem = fs.createReadStream(fileFullPath)

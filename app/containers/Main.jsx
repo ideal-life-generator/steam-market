@@ -7,7 +7,7 @@ import { clearUser } from "actions/logout"
 
 class Main extends Component {
   componentDidMount () {
-    const { connect: { connected, sendOnce, send, subscribeOnce, subscribe }, dispatch } = this.props
+    const { connection: { connected, send, subscribe }, dispatch } = this.props
     const { steamId, token } = localStorage
     if (Boolean(steamId) && Boolean(token)) {
       let user = {
@@ -23,12 +23,11 @@ class Main extends Component {
       dispatch(receiveSteamProfile(steamProfile))
     })
     subscribe("user.response", (user) => {
-      console.log(user)
       dispatch(storeUser(user))
     })
   }
   render () {
-    const { dispatch, connect: { send }, steamProfile, user: { userId } } = this.props
+    const { dispatch, connection: { send }, steamProfile, user: { userId } } = this.props
     return (
       <div>
         <Header

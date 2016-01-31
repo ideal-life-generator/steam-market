@@ -1,25 +1,30 @@
-import http from "http"
-import ws from "ws"
-import WsSessions from "./server/ws-sessions"
+import { createServer } from "http"
+import sessions from "./server/ws-sessions"
 import pg from "pg"
-import fileStream from "./server/api/file-stream"
-import signin from "./server/api/signin"
-import userCheck from "./server/api/user-check"
-import { PORT_HTTP_SERVER, PATH_HTTP_SERVER, PATH_DB_SERVER, PORT_SOCKET_SERVER } from "./config"
 
-const httpServer = http.createServer((req, res) => {
+import { HTTP_SERVER_PATH, HTTP_SERVER_PORT, DB_SERVER_PATH, SOCKET_SERVER_PORT } from "./config"
+
+
+import fileStream from "./server/api/file-stream"
+
+createServer((req, res) => {
   fileStream(req, res)
-}).listen(PORT_HTTP_SERVER, PATH_HTTP_SERVER, () => {
-  console.info(`HTTP server is listened on ${PATH_HTTP_SERVER}:${PORT_HTTP_SERVER}`)
+}).listen(HTTP_SERVER_PORT, HTTP_SERVER_PATH, () => {
+  console.info(`HTTP server is listening on ${HTTP_SERVER_PATH}:${HTTP_SERVER_PORT}`)
 })
 
-const socketServer = new ws.Server({ port: PORT_SOCKET_SERVER })
-const wsSessions = new WsSessions(socketServer)
 
-pg.connect(PATH_DB_SERVER, (error, db, done) => {
+import signin from "./server/api/signin"
+import userCheck from "./server/api/user-check"
+
+pg.connect(DB_SERVER_PATH, (error, db, done) => {
   if (error) { throw error }
   else {
-    signin(wsSessions, db)
-    userCheck(wsSessions, db)
+    sessions({
+      port: SOCKET_SERVER_PORT
+    }, ({ current, session, all, subscribe, socketSessionId, socket }) => {
+      signin(session, subscribe, db)
+      userCheck(session, subscribe, db)
+    })
   }
 })

@@ -3,8 +3,8 @@ import signinCheck from "./../steam/signin-check"
 import getProfile from "./../steam/get-profile"
 import user from "./../db/user"
 
-function signin (wsSessions, db) {
-  wsSessions.on("signin.check", (signinQuery, sessionId) => {
+function signin (session, subscribe, db) {
+  subscribe("signin.check", (signinQuery, sessionId) => {
     const signinQueryCorrect = signinQuery.replace("+", "%2B")
     const signinQueryParsed = querystring.parse(signinQueryCorrect)
     const signinQueryCheckParsed = {
@@ -14,19 +14,19 @@ function signin (wsSessions, db) {
     const signinQueryCheck = querystring.stringify(signinQueryCheckParsed)
     signinCheck(signinQueryCheck, (err, steamId) => {
       if (err) {
-        wsSessions.to(sessionId, "signin.reject")
+        session("signin.reject")
       }
       else {
-        wsSessions.to(sessionId, "signin.resolve")
+        session("signin.resolve")
         getProfile(steamId, (steamProfile) => {
-          wsSessions.to(sessionId, "steam-profile.response", steamProfile)
+          session("steam-profile.response", steamProfile)
         })
         user.exist(db, steamId, (isExist) => {
           if (isExist) {
             user.updateToken(db, steamId, (isTokenUpdated) => {
               if (isTokenUpdated) {
                 user.get(db, steamId, (user) => {
-                  wsSessions.to(sessionId, "user.response", user)
+                  session("user.response", user)
                 })
               }
               else {
@@ -38,7 +38,7 @@ function signin (wsSessions, db) {
             user.create(db, steamId, (isCreated) => {
               if (isCreated) {
                 user.get(db, steamId, (user) => {
-                  wsSessions.to(sessionId, "user.response", user)
+                  session("user.response", user)
                 })
               }
               else {

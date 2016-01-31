@@ -33,13 +33,13 @@
   </div>
   <script type="text/javascript">
     var signinData = window.location.search.substring(1);
-    if (!!signinData) {
+    if (Boolean(signinData)) {
       window.history.replaceState(null, null, "/signin");
       var socket = new WebSocket("ws://localhost:5001")
       socket.addEventListener("open", function (event) {
         var message = {
-          eventName: "signin.check",
-          data: signinData
+          identifier: "signin.check",
+          data: [ signinData ]
         };
         var messageJSON = JSON.stringify(message);
         socket.send(messageJSON);
@@ -47,8 +47,8 @@
       socket.addEventListener("message", function (event) {
         var messageJSON = event.data;
         var message = JSON.parse(messageJSON);
-        var eventName = message.eventName
-        switch (eventName) {
+        var identifier = message.identifier
+        switch (identifier) {
           case "signin.resolve":
             window.close();
             break;

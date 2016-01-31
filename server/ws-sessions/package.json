@@ -1,0 +1,43 @@
+{
+  "author": {
+    "email": "timetoburnfire@gmail.com",
+    "name": "Vladislav Tkachenko"
+  },
+  "bugs": {
+    "email": "wssession.sup@gmail.com",
+    "url": "https://github.com/timetoburnfire/ws-sessions/issues"
+  },
+  "dependencies": {
+    "cookie": "^0.2.3",
+    "ws": "^1.0.1"
+  },
+  "description": "Wrap of Web Socket browser client based on ws plugin. Generate unique session for used browser to work with all connections maunally.",
+  "devDependencies": {},
+  "directories": {},
+  "dist": {
+    "shasum": "30ce57a6149593fc53cf0bf334219096115150d0",
+    "tarball": "http://registry.npmjs.org/ws-sessions/-/ws-sessions-1.0.12.tgz"
+  },
+  "gitHead": "1ec25063340c1fb962e16b0c05504af7529720de",
+  "homepage": "https://github.com/timetoburnfire/ws-sessions#readme",
+  "keywords": [
+    "session",
+    "web socket",
+    "ws",
+    "ws-sessions"
+  ],
+  "license": "MIT",
+  "maintainers": [
+    {
+      "name": "timetoburnfire",
+      "email": "timetoburnfire@gmail.com"
+    }
+  ],
+  "name": "ws-sessions",
+  "optionalDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timetoburnfire/ws-sessions.git"
+  },
+  "version": "0.1.3"
+}
