@@ -11,7 +11,7 @@
     "cookie": "^0.2.3",
     "shortid": "^2.2.4"
   },
-  "description": "Wrap of Web Socket browser client based on ws plugin. Generate unique session for used browser to work with all connections maunally.",
+  "description": "It creates a session for connections.",
   "devDependencies": {},
   "directories": {},
   "dist": {
@@ -39,5 +39,5 @@
     "type": "git",
     "url": "git+https://github.com/timetoburnfire/ws-session.git"
   },
-  "version": "0.1.3"
+  "version": "0.1.17"
 }

@@ -1,4 +1,5 @@
 import { createServer } from "http"
+import { Server } from "ws"
 import sessions from "./server/ws-sessions"
 import pg from "pg"
 
@@ -20,11 +21,11 @@ import userCheck from "./server/api/user-check"
 pg.connect(DB_SERVER_PATH, (error, db, done) => {
   if (error) { throw error }
   else {
-    sessions({
-      port: SOCKET_SERVER_PORT
-    }, ({ current, session, all, subscribe, socketSessionId, socket }) => {
-      signin(session, subscribe, db)
-      userCheck(session, subscribe, db)
+    const wsServer = new Server({ port: SOCKET_SERVER_PORT })
+    const { connections, single, session, all, exceptSingle, exceptSession, subscribe } = sessions(wsServer)
+    connections(({ current, currentSession, exceptCurrent, exceptCurrentSession, socketId, socketSessionId, socket }) => {
+      signin(currentSession, subscribe, db)
+      userCheck(currentSession, subscribe, db)
     })
   }
 })

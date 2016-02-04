@@ -1,58 +1,65 @@
-import { Server } from "ws"
-import { parse as cookieParse } from "cookie"
+import { parse } from "cookie"
+import { generate } from "shortid"
 
-function sessions (settings, callback) {
-  const wsServer = new Server(settings)
-
-  const sockets = new Set()
+function sessions (wsServer, callback) {
+  const sockets = new Map()
   const sessions = new Map()
 
   const identifiers = new Map()
 
-  wsServer.on("connection", (socket) => {
-    sockets.add(socket)
+  function connections (callback) {
+    wsServer.on("connection", (socket) => {
+      const { upgradeReq: { headers: { cookie } } } = socket
+      const { socketSessionId } = parse(cookie)
 
-    const { upgradeReq: { headers: { cookie } } } = socket
-    const { socketId, socketSessionId } = cookieParse(cookie)
-    
-    if (sessions.has(socketSessionId) === false) {
-      sessions.set(socketSessionId, new Set())
-    }
-    const currentSession = sessions.get(socketSessionId)
-    currentSession.add(socket)
-
-    socket.on("message", (messageJSON) => {
-      const { identifier, data } = JSON.parse(messageJSON)
-      if (identifiers.has(identifier)) {
-        const callback = identifiers.get(identifier)
-        callback.apply(null, data)
+      const socketId = generate()
+      sockets.set(socketId, socket)
+  
+      if (sessions.has(socketSessionId) === false) {
+        sessions.set(socketSessionId, new Set())
       }
-    })
+      
+      {
+        const session = sessions.get(socketSessionId)
+        session.add(socket)
 
-    socket.on("close", () => {
-      sockets.delete(socket)
-      currentSession.delete(socket)
-      if (currentSession.size === 0) {
-        sessions.delete(socketSessionId)
+        socket.on("message", (messageJSON) => {
+          const { identifier, data } = JSON.parse(messageJSON)
+          if (identifiers.has(identifier)) {
+            const callback = identifiers.get(identifier)
+            callback.apply(null, data)
+          }
+        })
+
+        socket.on("close", () => {
+          sockets.delete(socketId)
+          session.delete(socket)
+          if (session.size === 0) {
+            sessions.delete(socketSessionId)
+          }
+          socket.terminate()
+        })
       }
-      socket.terminate()
-    })
 
-    callback({
-      current: current.bind(null, socket),
-      session: session.bind(null, currentSession),
-      all,
-      subscribe,
-      socketSessionId,
-      socket
+      callback({
+        current: single.bind(null, socketId),
+        currentSession: session.bind(null, socketSessionId),
+        exceptCurrent: exceptSingle.bind(null, socketId),
+        exceptCurrentSession: exceptSession.bind(null, socketSessionId),
+        socketId,
+        socketSessionId,
+        socket
+      })
     })
-  })
+  }
 
-  function current (socket, identifier, ...data) {
+  function single (socketId, identifier, ...data) {
+    const socket = sockets.get(socketId)
     socket.send(JSON.stringify({ identifier, data }))
   }
 
-  function session (session, identifier, ...data) {
+  function session (socketSessionId, identifier, ...data) {
+    const session = sessions.get(socketSessionId)
     const messageJSON = JSON.stringify({ identifier, data })
     session.forEach((socket) => {
       socket.send(messageJSON)
@@ -66,12 +73,38 @@ function sessions (settings, callback) {
     })
   }
 
+  function exceptSingle (socketId, identifier, ...data) {
+    const messageJSON = JSON.stringify({ identifier, data })
+    sockets.forEach((socket, id) => {
+      if (id !== socketId) {
+        socket.send(messageJSON)
+      }
+    })
+  }
+
+  function exceptSession (socketSessionId, identifier, ...data) {
+    const messageJSON = JSON.stringify({ identifier, data })
+    sessions.forEach((session, id) => {
+      if (id !== socketSessionId) {
+        session.forEach((socket) => {
+          socket.send(messageJSON)
+        })
+      }
+    })
+  }
+
   function subscribe (identifier, callback) {
     identifiers.set(identifier, callback)
   }
 
   return {
-    wsServer
+    connections,
+    single,
+    session,
+    all,
+    exceptSingle,
+    exceptSession,
+    subscribe
   }
 }
 

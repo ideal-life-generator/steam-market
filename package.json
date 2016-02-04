@@ -1,10 +1,12 @@
 {
   "version": "0.0.0",
-  "description": "A trade marked place. Work with CS:GO skins. Can install it in mobile.",
+  "description": "A trade marked place.",
   "repository": "https://github.com/timetoburnfire/steam-market",
   "scripts": {
     "nodemon": "nodemon start --watch start.js --watch server --exec babel-node --presets es2015,stage-2",
-    "webpack": "webpack --watch --progress --colors --display-error-details"
+    "webpack": "webpack --watch --progress --colors --display-error-details",
+    "mocha": "mocha",
+    "karma": "karma start karma.conf.js"
   },
   "dependencies": {
     "cookie": "^0.2.3",
@@ -24,20 +26,27 @@
   },
   "devDependencies": {
     "babel-cli": "^6.4.5",
-    "babel-core": "^6.3.21",
-    "babel-loader": "^6.2.0",
+    "babel-core": "^6.4.5",
+    "babel-loader": "^6.2.2",
     "babel-preset-es2015": "^6.3.13",
     "babel-preset-react": "^6.3.13",
     "babel-preset-stage-2": "^6.3.13",
+    "babel-register": "^6.4.3",
     "css-loader": "*",
     "file-loader": "^0.8.5",
+    "jasmine-core": "^2.4.1",
     "json-loader": "^0.5.4",
+    "karma": "^0.13.19",
+    "karma-chrome-launcher": "^0.2.2",
+    "karma-jasmine": "^0.3.7",
     "less": "^2.5.3",
     "less-loader": "^2.2.2",
+    "mocha": "^2.4.5",
     "nodemon": "^1.8.1",
     "redux-devtools": "^3.0.1",
     "redux-devtools-dock-monitor": "^1.0.1",
     "redux-devtools-log-monitor": "^1.0.2",
+    "should": "^8.2.1",
     "style-loader": "^0.13.0",
     "webpack": "^1.12.9"
   }

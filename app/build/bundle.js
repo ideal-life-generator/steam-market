@@ -20874,42 +20874,43 @@
 	var _shortid = __webpack_require__(179);
 
 	function session(url) {
+	  var connects = new Set();
+	  var subscribes = new Map();
+
 	  var cookieObj = (0, _cookie.parse)(document.cookie);
 	  var socketSessionId = cookieObj.socketSessionId;
 
-	  if (!Boolean(socketSessionId)) {
+	  if (Boolean(socketSessionId) === false) {
 	    socketSessionId = (0, _shortid.generate)();
 	    document.cookie = "socketSessionId=" + socketSessionId + ";";
 	  }
 
 	  var webSocket = new WebSocket(url);
 
-	  function connected(callback) {
-	    var handler = function handler() {
+	  webSocket.addEventListener("open", function () {
+	    connects.forEach(function (callback) {
 	      callback();
-	      webSocket.removeEventListener("open", handler);
-	    };
-	    webSocket.addEventListener("open", handler);
-	    return function () {
-	      webSocket.removeEventListener("open", handler);
-	    };
-	  }
+	    });
+	  });
 
-	  function subscribe(identifier, callback) {
-	    function handler(event) {
-	      var messageJSON = event.data;
+	  webSocket.addEventListener("message", function (event) {
+	    var messageJSON = event.data;
 
-	      var message = JSON.parse(messageJSON);
-	      var remoteidentifier = message.identifier;
-	      var data = message.data;
+	    var _JSON$parse = JSON.parse(messageJSON);
 
-	      if (identifier === remoteidentifier) {
-	        callback.apply(null, data);
-	      }
+	    var identifier = _JSON$parse.identifier;
+	    var data = _JSON$parse.data;
+
+	    var callback = subscribes.get(identifier);
+	    if (Boolean(callback)) {
+	      callback.apply(null, data);
 	    }
-	    webSocket.addEventListener("message", handler);
-	    return function () {
-	      webSocket.removeEventListener("message", handler);
+	  });
+
+	  function connected(callback) {
+	    connects.add(callback);
+	    return function unsubscribe() {
+	      connects.delete(callback);
 	    };
 	  }
 
@@ -20918,18 +20919,32 @@
 	      data[_key - 1] = arguments[_key];
 	    }
 
-	    var message = { identifier: identifier, data: data };
-	    var messageJSON = JSON.stringify(message);
-	    webSocket.send(messageJSON);
+	    webSocket.send(JSON.stringify({ identifier: identifier, data: data }));
+	  }
+
+	  function subscribe(identifier, callback) {
+	    subscribes.set(identifier, callback);
+	    return function unsubscribe() {
+	      subscribes.delete(identifier);
+	    };
+	  }
+
+	  function subscribeOnce(identifier, callback) {
+	    function handler() {
+	      callback.apply(null, arguments);
+	      unsubscribe();
+	    }
+	    var unsubscribe = subscribe(identifier, handler);
+	    return unsubscribe;
 	  }
 
 	  return {
 	    socketSessionId: socketSessionId,
 	    webSocket: webSocket,
 	    connected: connected,
-	    // subscribeOnce,
+	    send: send,
 	    subscribe: subscribe,
-	    send: send
+	    subscribeOnce: subscribeOnce
 	  };
 	}
 
@@ -21919,10 +21934,10 @@
 	    key: "render",
 	    value: function render() {
 	      var _props2 = this.props;
-	      var dispatch = _props2.dispatch;
 	      var send = _props2.connection.send;
 	      var steamProfile = _props2.steamProfile;
 	      var userId = _props2.user.userId;
+	      var dispatch = _props2.dispatch;
 
 	      return _react2.default.createElement(
 	        "div",

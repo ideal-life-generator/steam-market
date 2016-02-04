@@ -27,7 +27,7 @@ class Main extends Component {
     })
   }
   render () {
-    const { dispatch, connection: { send }, steamProfile, user: { userId } } = this.props
+    const { connection: { send }, steamProfile, user: { userId }, dispatch } = this.props
     return (
       <div>
         <Header
